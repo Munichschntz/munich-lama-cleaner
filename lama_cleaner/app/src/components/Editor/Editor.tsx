@@ -32,10 +32,7 @@ import {
   useImage,
 } from '../../utils'
 import {
-  batchFilesState,
-  batchIndexState,
   cropperState,
-  fileState,
   isInpaintingState,
   isSDState,
   promptState,
@@ -131,9 +128,6 @@ async function srcToDataUrl(src: string): Promise<string> {
 
 export default function Editor(props: EditorProps) {
   const { file } = props
-  const [fileVal, setFile] = useRecoilState(fileState)
-  const [batchFiles, setBatchFiles] = useRecoilState(batchFilesState)
-  const [batchIndex, setBatchIndex] = useRecoilState(batchIndexState)
   const [promptVal, setPrompt] = useRecoilState(promptState)
   const [settings, setSettings] = useRecoilState(settingState)
   const [seedVal, setSeed] = useRecoilState(seedState)
@@ -686,28 +680,6 @@ export default function Editor(props: EditorProps) {
     draw,
     drawOnCurrentRender,
   ])
-
-  const navigateBatch = useCallback(
-    (offset: number) => {
-      if (!fileVal || batchFiles.length <= 1) {
-        return
-      }
-      const nextIndex = batchIndex + offset
-      if (nextIndex < 0 || nextIndex >= batchFiles.length) {
-        return
-      }
-
-      if (renders.length > 0) {
-        const name = file.name.replace(/(\.[\w\d_-]+)$/i, '_cleanup$1')
-        const curRender = renders[renders.length - 1]
-        downloadImage(curRender.currentSrc, name)
-      }
-
-      setBatchIndex(nextIndex)
-      setFile(batchFiles[nextIndex])
-    },
-    [batchFiles, batchIndex, fileVal, renders, file.name, setBatchIndex, setFile]
-  )
 
   useEffect(() => {
     window.addEventListener('resize', resetZoom)
@@ -1339,27 +1311,6 @@ export default function Editor(props: EditorProps) {
           onClick={() => setShowRefBrush(false)}
         />
         <div className="editor-toolkit-btns">
-          <Button
-            toolTip="Previous Batch File"
-            tooltipPosition="top"
-            disabled={batchFiles.length <= 1 || batchIndex === 0}
-            onClick={() => navigateBatch(-1)}
-          >
-            Prev
-          </Button>
-          <Button
-            toolTip="Next Batch File"
-            tooltipPosition="top"
-            disabled={batchFiles.length <= 1 || batchIndex >= batchFiles.length - 1}
-            onClick={() => navigateBatch(1)}
-          >
-            Next
-          </Button>
-          {batchFiles.length > 1 && (
-            <span className="editor-batch-counter">
-              {batchIndex + 1}/{batchFiles.length}
-            </span>
-          )}
           <Button toolTip="Save Session" tooltipPosition="top" onClick={saveSession}>
             Save Session
           </Button>

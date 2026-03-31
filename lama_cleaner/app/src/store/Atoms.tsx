@@ -18,16 +18,6 @@ export const fileState = atom<File | undefined>({
   default: undefined,
 })
 
-export const batchFilesState = atom<File[]>({
-  key: 'batchFilesState',
-  default: [],
-})
-
-export const batchIndexState = atom<number>({
-  key: 'batchIndexState',
-  default: 0,
-})
-
 export interface Rect {
   x: number
   y: number

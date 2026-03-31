@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import useResolution from '../../hooks/useResolution'
 
 type FileSelectProps = {
-  onSelection: (file: File, files: File[]) => void
+  onSelection: (file: File) => void
 }
 
 export default function FileSelect(props: FileSelectProps) {
@@ -13,7 +13,7 @@ export default function FileSelect(props: FileSelectProps) {
 
   const resolution = useResolution()
 
-  function onFileSelected(file: File, allFiles: File[] = [file]) {
+  function onFileSelected(file: File) {
     if (!file) {
       return
     }
@@ -27,7 +27,7 @@ export default function FileSelect(props: FileSelectProps) {
       if (file.size > 20 * 1024 * 1024) {
         throw new Error('file too large')
       }
-      onSelection(file, allFiles)
+      onSelection(file)
     } catch (e) {
       // eslint-disable-next-line
       alert(`error: ${(e as any).message}`)
@@ -95,7 +95,7 @@ export default function FileSelect(props: FileSelectProps) {
     const imageFiles = items.filter(item => item.type.match('image.*'))
     setDragHover(false)
     if (imageFiles.length > 0) {
-      onFileSelected(imageFiles[0], imageFiles)
+      onFileSelected(imageFiles[0])
     }
   }
 
@@ -126,7 +126,7 @@ export default function FileSelect(props: FileSelectProps) {
             )
             const file = imageFiles[0]
             if (file) {
-              onFileSelected(file, imageFiles)
+              onFileSelected(file)
             }
           }}
           accept="image/png, image/jpeg"

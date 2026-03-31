@@ -9,7 +9,6 @@ import { fileState, toastState } from './store/Atoms'
 import { keepGUIAlive } from './utils'
 import Header from './components/Header/Header'
 import useHotKey from './hooks/useHotkey'
-import { batchFilesState, batchIndexState } from './store/Atoms'
 
 const SUPPORTED_FILE_TYPE = [
   'image/jpeg',
@@ -24,8 +23,6 @@ keepGUIAlive()
 
 function App() {
   const [file, setFile] = useRecoilState(fileState)
-  const [, setBatchFiles] = useRecoilState(batchFilesState)
-  const [, setBatchIndex] = useRecoilState(batchIndexState)
   const [theme, setTheme] = useRecoilState(themeState)
   const [toastVal, setToastState] = useRecoilState(toastState)
   const userInputImage = useInputImage()
@@ -88,8 +85,6 @@ function App() {
           SUPPORTED_FILE_TYPE.includes(f.type)
         )
         if (dragFiles.length > 0) {
-          setBatchFiles(dragFiles)
-          setBatchIndex(0)
           setFile(dragFiles[0])
         } else {
           setToastState({
@@ -103,8 +98,6 @@ function App() {
         const dragFile = event.dataTransfer.files[0]
         const fileType = dragFile.type
         if (SUPPORTED_FILE_TYPE.includes(fileType)) {
-          setBatchFiles([dragFile])
-          setBatchIndex(0)
           setFile(dragFile)
         } else {
           setToastState({
