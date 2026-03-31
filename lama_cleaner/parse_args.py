@@ -3,6 +3,33 @@ import imghdr
 import argparse
 
 
+MODEL_CHOICES = ["lama", "ldm", "zits", "mat", "fcf", "sd1.4", "cv2"]
+
+
+def _parse_preload_models(raw: str):
+    if not raw:
+        return []
+
+    names = [name.strip() for name in raw.split(",") if name.strip()]
+    if not names:
+        return []
+
+    normalized = []
+    seen = set()
+    if "all" in names:
+        names = MODEL_CHOICES
+
+    for name in names:
+        if name not in MODEL_CHOICES:
+            raise ValueError(name)
+        if name in seen:
+            continue
+        seen.add(name)
+        normalized.append(name)
+
+    return normalized
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="127.0.0.1")
@@ -10,7 +37,17 @@ def parse_args():
     parser.add_argument(
         "--model",
         default="lama",
-        choices=["lama", "ldm", "zits", "mat", "fcf", "sd1.4", "cv2"],
+        choices=MODEL_CHOICES,
+    )
+    parser.add_argument(
+        "--preload-models",
+        default="",
+        help="Pre-download model weights before launch. Comma-separated model names or 'all'",
+    )
+    parser.add_argument(
+        "--preload-only",
+        action="store_true",
+        help="Only pre-download model weights and exit",
     )
     parser.add_argument(
         "--hf_access_token",
@@ -47,13 +84,25 @@ def parse_args():
     parser.add_argument("--debug", action="store_true")
 
     args = parser.parse_args()
+
+    try:
+        args.preload_models = _parse_preload_models(args.preload_models)
+    except ValueError as e:
+        parser.error(
+            f"invalid --preload-models value: {e}. valid values: {', '.join(MODEL_CHOICES)} or all"
+        )
+
+    if args.preload_only and not args.preload_models:
+        args.preload_models = [args.model]
+
     if args.input is not None:
         if not os.path.exists(args.input):
             parser.error(f"invalid --input: {args.input} not exists")
         if imghdr.what(args.input) is None:
             parser.error(f"invalid --input: {args.input} is not a valid image file")
 
-    if args.model.startswith("sd") and not args.sd_run_local:
+    needs_sd_token = any(name.startswith("sd") for name in [args.model, *args.preload_models])
+    if needs_sd_token and not args.sd_run_local:
         if not args.hf_access_token.startswith("hf_"):
             parser.error(
                 f"sd(stable-diffusion) model requires huggingface access token. Check how to get token from: https://huggingface.co/docs/hub/security-tokens"

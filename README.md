@@ -53,6 +53,12 @@ pip install lama-cleaner
 # Model will be downloaded automatically
 lama-cleaner --model=lama --device=cpu --port=8080
 # Lama Cleaner is now running at http://localhost:8080
+
+# Optional: pre-download selected model weights before launch
+lama-cleaner --preload-models lama,mat --model lama
+
+# Optional: download model weights and exit (no server start)
+lama-cleaner --preload-models all --preload-only
 ```
 
 Available arguments:
@@ -60,6 +66,8 @@ Available arguments:
 | Name              | Description                                                                                                                   | Default  |
 |-------------------|-------------------------------------------------------------------------------------------------------------------------------| -------- |
 | --model           | lama/ldm/zits/mat/fcf/sd1.4 See details in [Inpaint Model](#inpainting-model)                                                 | lama     |
+| --preload-models  | Pre-download model weights before launch. Comma-separated model names or `all`                                                 |          |
+| --preload-only    | Download selected model weights and exit without starting server. If no `--preload-models`, uses `--model`                    |          |
 | --hf_access_token | stable-diffusion(sd) model need [huggingface access token](https://huggingface.co/docs/hub/security-tokens) to download model |          |
 | --sd-run-local    | Once the model is downloaded, you can pass this arg and remove `--hf_access_token`                                            |          |
 | --sd-disable-nsfw | Disable stable-diffusion NSFW checker.                                                                                        |          |

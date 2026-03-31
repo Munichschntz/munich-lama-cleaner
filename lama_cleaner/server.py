@@ -16,7 +16,7 @@ import torch
 import numpy as np
 from loguru import logger
 
-from lama_cleaner.model_manager import ModelManager
+from lama_cleaner.model_manager import ModelManager, models
 from lama_cleaner.schema import Config, QualityPreset
 
 try:
@@ -55,6 +55,7 @@ if os.environ.get("CACHE_DIR"):
 
 DEFAULT_BUILD_DIR = Path(__file__).resolve().parent / "app" / "build"
 BUILD_DIR = Path(os.environ.get("LAMA_CLEANER_BUILD_DIR", str(DEFAULT_BUILD_DIR)))
+PRELOAD_DOWNLOAD_CHECK_UNSUPPORTED = {"sd1.4", "cv2"}
 
 
 class NoFlaskwebgui(logging.Filter):
@@ -406,15 +407,95 @@ def main(args):
     device = torch.device(args.device)
     input_image_path = args.input
 
-    model = ModelManager(
-        name=args.model,
-        device=device,
+    startup_kwargs = dict(
         hf_access_token=args.hf_access_token,
         sd_disable_nsfw=args.sd_disable_nsfw,
         sd_cpu_textencoder=args.sd_cpu_textencoder,
         sd_run_local=args.sd_run_local,
         callbacks=[diffuser_callback],
     )
+
+    preload_models = list(args.preload_models)
+    if preload_models:
+        if args.model not in preload_models:
+            preload_models.append(args.model)
+        logger.info(f"Preloading models before launch: {', '.join(preload_models)}")
+
+        preload_status_before = {}
+        for preload_name in preload_models:
+            if preload_name in PRELOAD_DOWNLOAD_CHECK_UNSUPPORTED:
+                preload_status_before[preload_name] = None
+                continue
+            preload_status_before[preload_name] = models[preload_name].is_downloaded()
+
+        preload_manager = ModelManager(
+            name=preload_models[0],
+            device=device,
+            **startup_kwargs,
+        )
+        for preload_name in preload_models[1:]:
+            if preload_name in preload_manager._cache:
+                continue
+            preload_manager.init_model(preload_name, device, **startup_kwargs)
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+        preload_status_counts = {
+            "already_cached": 0,
+            "newly_downloaded": 0,
+            "unknown": 0,
+        }
+        preload_status_lines = []
+        for preload_name in preload_models:
+            status_before = preload_status_before.get(preload_name)
+            if status_before is None:
+                preload_status_counts["unknown"] += 1
+                preload_status_lines.append(
+                    f"{preload_name}=unknown(download check unavailable)"
+                )
+                continue
+
+            status_after = models[preload_name].is_downloaded()
+            if status_before:
+                preload_status_counts["already_cached"] += 1
+                preload_status_lines.append(f"{preload_name}=already_cached")
+            elif status_after:
+                preload_status_counts["newly_downloaded"] += 1
+                preload_status_lines.append(f"{preload_name}=newly_downloaded")
+            else:
+                preload_status_counts["unknown"] += 1
+                preload_status_lines.append(f"{preload_name}=unknown(post-check failed)")
+
+        logger.info(
+            "Preload summary: "
+            f"already_cached={preload_status_counts['already_cached']}, "
+            f"newly_downloaded={preload_status_counts['newly_downloaded']}, "
+            f"unknown={preload_status_counts['unknown']}"
+        )
+        logger.info(f"Preload details: {', '.join(preload_status_lines)}")
+
+        if args.preload_only:
+            logger.info("Model preloading finished (--preload-only), exiting.")
+            return
+
+        if args.model in preload_manager._cache:
+            preload_manager.model = preload_manager._cache[args.model]
+            preload_manager.name = args.model
+            model = preload_manager
+
+            # Drop other loaded model instances after cache warm-up.
+            for cached_name in list(model._cache.keys()):
+                if cached_name != args.model:
+                    del model._cache[cached_name]
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+    if model is None:
+        model = ModelManager(
+            name=args.model,
+            device=device,
+            **startup_kwargs,
+        )
 
     if args.gui:
         app_width, app_height = args.gui_size
