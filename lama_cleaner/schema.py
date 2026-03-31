@@ -19,6 +19,12 @@ class SDSampler(str, Enum):
     pndm = "pndm"
 
 
+class QualityPreset(str, Enum):
+    fast = "fast"
+    balanced = "balanced"
+    best = "best"
+
+
 class Config(BaseModel):
     ldm_steps: int
     ldm_sampler: str = LDMSampler.plms
@@ -37,6 +43,7 @@ class Config(BaseModel):
     cropper_width: int = None
 
     # sd
+    quality_preset: str = QualityPreset.balanced
     sd_mask_blur: int = 0
     sd_strength: float = 0.75
     sd_steps: int = 50
@@ -48,3 +55,8 @@ class Config(BaseModel):
     # cv2
     cv2_radius: int = 3
     cv2_flag: str = "INPAINT_TELEA"
+
+    # optional tiled inference for large images
+    enable_tiling: bool = False
+    tile_size: int = 1024
+    tile_overlap: int = 64

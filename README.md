@@ -83,6 +83,25 @@ Available arguments:
 | FcF   | :+1: Better structure and texture generation <br/> :neutral_face: Only support fixed size (512x512) input                                                                                                              |                                                                                                                                                                                                                                                                                   |
 | SD1.4 | :+1: SOTA text-to-image diffusion model                                                                                                                                                                                |                                                                                                                                                                                                                                                                                   |
 
+### Which Model Should I Use?
+
+Use this quick guide when starting a new task:
+
+- **Fast cleanup with low hardware requirements**: `cv2` (CPU friendly, best for simple backgrounds and watermark/text removal).
+- **General purpose and stable quality**: `lama` (best default for most photos, good quality/speed balance).
+- **Higher detail synthesis**: `ldm` (slower, better semantic fills, benefits from higher steps).
+- **Structure-heavy scenes**: `zits` (good at preserving lines/geometry, slower especially on CPU).
+- **Texture-focused holes**: `fcf` (works on 512x512 crops, strong texture quality).
+- **Prompt-driven replacements**: `sd1.4` (best when you need to control generated content using text prompts).
+
+In the settings panel, use **Quality presets** (`fast`, `balanced`, `best`) as a first pass:
+
+- `fast`: fastest latency, lower detail.
+- `balanced`: recommended default.
+- `best`: slower but strongest quality.
+
+For very large images, enable **Tiled Inference** in settings to reduce GPU memory pressure.
+
 ### LaMa vs LDM
 
 | Original Image                                                                                                                            | LaMa                                                                                                                                                   | LDM                                                                                                                                                   |
@@ -128,6 +147,70 @@ you can set `TORCH_HOME` to other folder and put the models there.
 - Baidu:
   - https://pan.baidu.com/s/1vUd3BVqIpK6e8N_EA_ZJfw
   - password: flsu
+
+## Troubleshooting
+
+### Model download issues
+
+- Set `TORCH_HOME` or `CACHE_DIR` to a writable folder.
+- Pre-download model files into your checkpoint cache if auto-download is blocked.
+- For `sd1.4`, pass `--hf_access_token` once to fetch private model artifacts.
+
+### CUDA / GPU issues
+
+- Verify CUDA visibility with `nvidia-smi`.
+- If your GPU is memory constrained, switch to `lama` or `cv2`, lower resolution strategy, or enable tiled inference.
+- Try `--device=cpu` to verify whether failures are CUDA-specific.
+
+### Out of memory (OOM)
+
+- Use `Resize` or `Crop` in high-resolution strategy.
+- Enable tiled inference and reduce tile size.
+- Lower `sdSteps`/`ldmSteps` or switch to `fast` preset.
+
+### Slow performance
+
+- Use `fast` quality preset.
+- Disable ZITS wireframe for speed.
+- Reduce image resolution or run on GPU.
+
+## Benchmarking
+
+The benchmark utility is in [lama_cleaner/benchmark.py](lama_cleaner/benchmark.py).
+
+Example runs:
+
+```bash
+# Benchmark LaMa on GPU
+python -m lama_cleaner.benchmark --model lama --device cuda --times 10
+
+# Benchmark LDM on GPU
+python -m lama_cleaner.benchmark --model ldm --device cuda --times 5
+
+# Benchmark on CPU
+python -m lama_cleaner.benchmark --model lama --device cpu --times 3
+```
+
+Recommended reporting format:
+
+- Model name and device
+- Image size
+- Mean latency ± std
+- CPU memory and (if available) GPU memory
+
+This makes results comparable across machines and pull requests.
+
+## Adding New Models (Extension Points)
+
+To add a model cleanly:
+
+1. Implement a new model class under `lama_cleaner/model/` by extending `InpaintModel` in [lama_cleaner/model/base.py](lama_cleaner/model/base.py).
+2. Register it in `models` and `MODEL_CAPABILITIES` in [lama_cleaner/model_manager.py](lama_cleaner/model_manager.py).
+3. Add any new request fields to [lama_cleaner/schema.py](lama_cleaner/schema.py).
+4. If needed, parse new form fields in [lama_cleaner/server.py](lama_cleaner/server.py).
+5. Add model-specific UI controls in [lama_cleaner/app/src/components/Settings/ModelSettingBlock.tsx](lama_cleaner/app/src/components/Settings/ModelSettingBlock.tsx).
+
+This keeps backend inference, request validation, and frontend controls aligned.
 
 ## Development
 

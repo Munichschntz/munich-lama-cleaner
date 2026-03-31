@@ -17,7 +17,7 @@ import numpy as np
 from loguru import logger
 
 from lama_cleaner.model_manager import ModelManager
-from lama_cleaner.schema import Config
+from lama_cleaner.schema import Config, QualityPreset
 
 try:
     torch._C._jit_override_can_fuse_on_cpu(False)
@@ -136,6 +136,28 @@ def get_form_field(form, key, aliases=None, default=None, deprecated_used=None):
     return default
 
 
+def apply_quality_preset(preset: str, model_name: str, config_values: dict):
+    if preset == QualityPreset.fast:
+        config_values["ldm_steps"] = 15
+        config_values["sd_steps"] = 20
+        config_values["sd_guidance_scale"] = 6.5
+        config_values["sd_sampler"] = "ddim"
+    elif preset == QualityPreset.best:
+        config_values["ldm_steps"] = 50
+        config_values["sd_steps"] = 60
+        config_values["sd_guidance_scale"] = 8.0
+        config_values["sd_sampler"] = "pndm"
+    else:
+        config_values["ldm_steps"] = 25
+        config_values["sd_steps"] = 40
+        config_values["sd_guidance_scale"] = 7.5
+        config_values["sd_sampler"] = "ddim"
+
+    # Keep per-model defaults intuitive even when a global preset is selected.
+    if model_name == "cv2":
+        config_values["cv2_radius"] = config_values.get("cv2_radius", 3)
+
+
 @app.route("/inpaint", methods=["POST"])
 def process():
     files = request.files
@@ -162,21 +184,22 @@ def process():
         else:
             size_limit = int(size_limit)
 
-        config = Config(
-            ldm_steps=get_form_field(form, "ldmSteps"),
-            ldm_sampler=get_form_field(form, "ldmSampler"),
-            hd_strategy=get_form_field(form, "hdStrategy"),
-            zits_wireframe=get_form_field(form, "zitsWireframe"),
-            hd_strategy_crop_margin=get_form_field(form, "hdStrategyCropMargin"),
-            hd_strategy_crop_trigger_size=get_form_field(
+        quality_preset = get_form_field(form, "qualityPreset", default=QualityPreset.balanced)
+        config_values = {
+            "ldm_steps": get_form_field(form, "ldmSteps"),
+            "ldm_sampler": get_form_field(form, "ldmSampler"),
+            "hd_strategy": get_form_field(form, "hdStrategy"),
+            "zits_wireframe": get_form_field(form, "zitsWireframe"),
+            "hd_strategy_crop_margin": get_form_field(form, "hdStrategyCropMargin"),
+            "hd_strategy_crop_trigger_size": get_form_field(
                 form,
                 "hdStrategyCropTriggerSize",
                 aliases=["hdStrategyCropTrigerSize"],
                 deprecated_used=deprecated_used,
             ),
-            hd_strategy_resize_limit=get_form_field(form, "hdStrategyResizeLimit"),
-            prompt=get_form_field(form, "prompt", default=""),
-            use_cropper=parse_bool(
+            "hd_strategy_resize_limit": get_form_field(form, "hdStrategyResizeLimit"),
+            "prompt": get_form_field(form, "prompt", default=""),
+            "use_cropper": parse_bool(
                 get_form_field(
                     form,
                     "useCropper",
@@ -185,39 +208,46 @@ def process():
                     deprecated_used=deprecated_used,
                 )
             ),
-            cropper_x=get_form_field(
+            "cropper_x": get_form_field(
                 form,
                 "cropperX",
                 aliases=["croperX"],
                 deprecated_used=deprecated_used,
             ),
-            cropper_y=get_form_field(
+            "cropper_y": get_form_field(
                 form,
                 "cropperY",
                 aliases=["croperY"],
                 deprecated_used=deprecated_used,
             ),
-            cropper_height=get_form_field(
+            "cropper_height": get_form_field(
                 form,
                 "cropperHeight",
                 aliases=["croperHeight"],
                 deprecated_used=deprecated_used,
             ),
-            cropper_width=get_form_field(
+            "cropper_width": get_form_field(
                 form,
                 "cropperWidth",
                 aliases=["croperWidth"],
                 deprecated_used=deprecated_used,
             ),
-            sd_mask_blur=get_form_field(form, "sdMaskBlur", default=0),
-            sd_strength=get_form_field(form, "sdStrength", default=0.75),
-            sd_steps=get_form_field(form, "sdSteps", default=50),
-            sd_guidance_scale=get_form_field(form, "sdGuidanceScale", default=7.5),
-            sd_sampler=get_form_field(form, "sdSampler", default="ddim"),
-            sd_seed=get_form_field(form, "sdSeed", default=-1),
-            cv2_radius=get_form_field(form, "cv2Radius", default=3),
-            cv2_flag=get_form_field(form, "cv2Flag", default="INPAINT_TELEA"),
-        )
+            "quality_preset": quality_preset,
+            "sd_mask_blur": get_form_field(form, "sdMaskBlur", default=0),
+            "sd_strength": get_form_field(form, "sdStrength", default=0.75),
+            "sd_steps": get_form_field(form, "sdSteps", default=50),
+            "sd_guidance_scale": get_form_field(form, "sdGuidanceScale", default=7.5),
+            "sd_sampler": get_form_field(form, "sdSampler", default="ddim"),
+            "sd_seed": get_form_field(form, "sdSeed", default=-1),
+            "cv2_radius": get_form_field(form, "cv2Radius", default=3),
+            "cv2_flag": get_form_field(form, "cv2Flag", default="INPAINT_TELEA"),
+            "enable_tiling": parse_bool(get_form_field(form, "enableTiling", default=False)),
+            "tile_size": get_form_field(form, "tileSize", default=1024),
+            "tile_overlap": get_form_field(form, "tileOverlap", default=64),
+        }
+
+        apply_quality_preset(quality_preset, model.name, config_values)
+        config = Config(**config_values)
 
         if config.sd_seed == -1:
             config.sd_seed = random.randint(1, 9999999)
@@ -285,6 +315,19 @@ def current_model():
 @app.route("/model_downloaded/<name>")
 def model_downloaded(name):
     return jsonify({"downloaded": model.is_downloaded(name)}), 200
+
+
+@app.route("/model_capabilities")
+def model_capabilities():
+    return jsonify(model.capabilities()), 200
+
+
+@app.route("/model_capabilities/<name>")
+def model_capability(name):
+    try:
+        return jsonify(model.capabilities(name)), 200
+    except NotImplementedError:
+        return error_response("MODEL_NOT_IMPLEMENTED", f"{name} not implemented", status=404)
 
 
 @app.route("/server_status")

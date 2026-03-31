@@ -182,6 +182,7 @@ export interface Settings {
   zitsWireframe: boolean
 
   // For SD
+  qualityPreset: QualityPreset
   sdMaskBlur: number
   sdMode: SDMode
   sdStrength: number
@@ -195,6 +196,11 @@ export interface Settings {
   // For OpenCV2
   cv2Radius: number
   cv2Flag: CV2Flag
+
+  // tiled inference
+  enableTiling: boolean
+  tileSize: number
+  tileOverlap: number
 }
 
 const defaultHDSettings: ModelsHDSettings = {
@@ -260,6 +266,12 @@ export enum SDMode {
   inpainting = 'inpainting',
 }
 
+export enum QualityPreset {
+  fast = 'fast',
+  balanced = 'balanced',
+  best = 'best',
+}
+
 export const settingStateDefault: Settings = {
   show: false,
   showCropper: false,
@@ -275,6 +287,7 @@ export const settingStateDefault: Settings = {
   zitsWireframe: true,
 
   // SD
+  qualityPreset: QualityPreset.balanced,
   sdMaskBlur: 5,
   sdMode: SDMode.inpainting,
   sdStrength: 0.75,
@@ -288,6 +301,11 @@ export const settingStateDefault: Settings = {
   // CV2
   cv2Radius: 5,
   cv2Flag: CV2Flag.INPAINT_NS,
+
+  // tiled inference
+  enableTiling: false,
+  tileSize: 1024,
+  tileOverlap: 64,
 }
 
 const localStorageEffect =

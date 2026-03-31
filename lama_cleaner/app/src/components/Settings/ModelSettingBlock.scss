@@ -9,3 +9,11 @@
   border-radius: 999px;
   text-decoration: none;
 }
+
+.model-capability-desc {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 6px 12px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}

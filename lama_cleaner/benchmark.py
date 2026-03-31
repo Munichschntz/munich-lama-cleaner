@@ -4,26 +4,21 @@ import argparse
 import multiprocessing
 import os
 import time
+from typing import Optional
 
 import numpy as np
-import nvidia_smi
 import psutil
 import torch
-from tqdm import tqdm
-
-from lama_cleaner.lama import LaMa
 
 try:
-    torch._C._jit_override_can_fuse_on_cpu(False)
-    torch._C._jit_override_can_fuse_on_gpu(False)
-    torch._C._jit_set_texpr_fuser_enabled(False)
-    torch._C._jit_set_nvfuser_enabled(False)
-except:
-    pass
+    import nvidia_smi
+except ImportError:
+    nvidia_smi = None
 
-from lama_cleaner.helper import norm_img
+from lama_cleaner.model_manager import ModelManager
+from lama_cleaner.schema import Config, HDStrategy, LDMSampler, SDSampler, QualityPreset
 
-NUM_THREADS = str(4)
+NUM_THREADS = str(max(1, multiprocessing.cpu_count() // 2))
 
 os.environ["OMP_NUM_THREADS"] = NUM_THREADS
 os.environ["OPENBLAS_NUM_THREADS"] = NUM_THREADS
@@ -34,70 +29,125 @@ if os.environ.get("CACHE_DIR"):
     os.environ["TORCH_HOME"] = os.environ["CACHE_DIR"]
 
 
-def run_model(model, size):
-    # RGB
-    image = np.random.randint(0, 256, (size[0], size[1], 3)).astype(np.uint8)
-    image = norm_img(image)
+def build_config() -> Config:
+    return Config(
+        ldm_steps=25,
+        ldm_sampler=LDMSampler.plms,
+        zits_wireframe=True,
+        hd_strategy=HDStrategy.RESIZE,
+        hd_strategy_crop_margin=128,
+        hd_strategy_crop_trigger_size=1024,
+        hd_strategy_resize_limit=1024,
+        prompt="",
+        use_cropper=False,
+        quality_preset=QualityPreset.balanced,
+        sd_mask_blur=5,
+        sd_strength=0.75,
+        sd_steps=40,
+        sd_guidance_scale=7.5,
+        sd_sampler=SDSampler.ddim,
+        sd_seed=42,
+        cv2_radius=3,
+        cv2_flag="INPAINT_TELEA",
+        enable_tiling=False,
+        tile_size=1024,
+        tile_overlap=64,
+    )
 
-    mask = np.random.randint(0, 255, size).astype(np.uint8)
-    mask = norm_img(mask)
-    model(image, mask)
+
+def run_model(manager: ModelManager, size, config: Config):
+    image = np.random.randint(0, 256, (size[0], size[1], 3), dtype=np.uint8)
+    mask = np.random.randint(0, 255, size, dtype=np.uint8)
+    manager(image, mask, config)
 
 
-def benchmark(model, times: int, empty_cache: bool):
+def benchmark(
+    manager: ModelManager,
+    times: int,
+    empty_cache: bool,
+    use_cuda_metrics: bool,
+):
     sizes = [
         (512, 512),
-        (640, 640),
+        (768, 768),
         (1080, 800),
-        (2000, 2000)
+        (1600, 1200),
+        (2000, 2000),
     ]
 
-    nvidia_smi.nvmlInit()
-    device_id = 0
-    handle = nvidia_smi.nvmlDeviceGetHandleByIndex(device_id)
+    handle: Optional[object] = None
+    if use_cuda_metrics and nvidia_smi is not None:
+        nvidia_smi.nvmlInit()
+        handle = nvidia_smi.nvmlDeviceGetHandleByIndex(0)
 
-    def format(metrics):
-        return f"{np.mean(metrics):.2f} ± {np.std(metrics):.2f}"
+    def metric(values):
+        return f"{np.mean(values):.2f} ± {np.std(values):.2f}"
 
     process = psutil.Process(os.getpid())
-    # 每个 size 给出显存和内存占用的指标
+    config = build_config()
+
     for size in sizes:
-        torch.cuda.empty_cache()
-        time_metrics = []
-        cpu_metrics = []
-        memory_metrics = []
-        gpu_memory_metrics = []
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        latency_ms = []
+        cpu_rss_mb = []
+        gpu_mem_mb = []
+
         for _ in range(times):
             start = time.time()
-            run_model(model, size)
-            torch.cuda.synchronize()
-            if empty_cache:
-                torch.cuda.empty_cache()
+            run_model(manager, size, config)
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+                if empty_cache:
+                    torch.cuda.empty_cache()
 
-            # cpu_metrics.append(process.cpu_percent())
-            time_metrics.append((time.time() - start) * 1000)
-            memory_metrics.append(process.memory_info().rss / 1024 / 1024)
-            gpu_memory_metrics.append(nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used / 1024 / 1024)
+            latency_ms.append((time.time() - start) * 1000)
+            cpu_rss_mb.append(process.memory_info().rss / 1024 / 1024)
+            if handle is not None and nvidia_smi is not None:
+                gpu_mem_mb.append(
+                    nvidia_smi.nvmlDeviceGetMemoryInfo(handle).used / 1024 / 1024
+                )
 
         print(f"size: {size}".center(80, "-"))
-        # print(f"cpu: {format(cpu_metrics)}")
-        print(f"latency: {format(time_metrics)}ms")
-        print(f"memory: {format(memory_metrics)} MB")
-        print(f"gpu memory: {format(gpu_memory_metrics)} MB")
+        print(f"latency: {metric(latency_ms)} ms")
+        print(f"cpu memory: {metric(cpu_rss_mb)} MB")
+        if gpu_mem_mb:
+            print(f"gpu memory: {metric(gpu_mem_mb)} MB")
 
-    nvidia_smi.nvmlShutdown()
+    if handle is not None and nvidia_smi is not None:
+        nvidia_smi.nvmlShutdown()
 
 
 def get_args_parser():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default="lama", type=str)
     parser.add_argument("--device", default="cuda", type=str)
-    parser.add_argument("--times", default=20, type=int)
+    parser.add_argument("--times", default=10, type=int)
     parser.add_argument("--empty-cache", action="store_true")
+    parser.add_argument("--hf_access_token", default=None, type=str)
+    parser.add_argument("--sd-run-local", action="store_true")
+    parser.add_argument("--sd-disable-nsfw", action="store_true")
+    parser.add_argument("--sd-cpu-textencoder", action="store_true")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = get_args_parser()
     device = torch.device(args.device)
-    model = LaMa(device)
-    benchmark(model, args.times, args.empty_cache)
+
+    manager = ModelManager(
+        args.model,
+        device,
+        hf_access_token=args.hf_access_token,
+        sd_run_local=args.sd_run_local,
+        sd_disable_nsfw=args.sd_disable_nsfw,
+        sd_cpu_textencoder=args.sd_cpu_textencoder,
+    )
+
+    benchmark(
+        manager,
+        times=args.times,
+        empty_cache=args.empty_cache,
+        use_cuda_metrics=("cuda" in args.device and torch.cuda.is_available()),
+    )

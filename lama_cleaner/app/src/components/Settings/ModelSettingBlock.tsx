@@ -1,6 +1,13 @@
-import React, { ReactNode } from 'react'
+import React, { ReactNode, useEffect, useState } from 'react'
 import { useRecoilState } from 'recoil'
-import { AIModel, CV2Flag, SDSampler, settingState } from '../../store/Atoms'
+import {
+  AIModel,
+  CV2Flag,
+  QualityPreset,
+  SDSampler,
+  settingState,
+} from '../../store/Atoms'
+import { modelCapabilities, ModelCapability } from '../../adapters/inpainting'
 import Selector from '../shared/Selector'
 import { Switch, SwitchThumb } from '../shared/Switch'
 import Tooltip from '../shared/Tooltip'
@@ -10,6 +17,15 @@ import SettingBlock from './SettingBlock'
 
 function ModelSettingBlock() {
   const [setting, setSettingState] = useRecoilState(settingState)
+  const [capabilities, setCapabilities] = useState<Record<string, ModelCapability>>({})
+
+  useEffect(() => {
+    modelCapabilities()
+      .then(setCapabilities)
+      .catch(() => {
+        setCapabilities({})
+      })
+  }, [])
 
   const onModelChange = (value: AIModel) => {
     setSettingState(old => {
@@ -20,6 +36,39 @@ function ModelSettingBlock() {
   const onLDMSamplerChange = (value: LDMSampler) => {
     setSettingState(old => {
       return { ...old, ldmSampler: value }
+    })
+  }
+
+  const onQualityPresetChange = (value: QualityPreset) => {
+    setSettingState(old => {
+      if (value === QualityPreset.fast) {
+        return {
+          ...old,
+          qualityPreset: value,
+          ldmSteps: 15,
+          sdSteps: 20,
+          sdGuidanceScale: 6.5,
+          sdSampler: SDSampler.ddim,
+        }
+      }
+      if (value === QualityPreset.best) {
+        return {
+          ...old,
+          qualityPreset: value,
+          ldmSteps: 50,
+          sdSteps: 60,
+          sdGuidanceScale: 8,
+          sdSampler: SDSampler.pndm,
+        }
+      }
+      return {
+        ...old,
+        qualityPreset: value,
+        ldmSteps: 25,
+        sdSteps: 40,
+        sdGuidanceScale: 7.5,
+        sdSampler: SDSampler.ddim,
+      }
     })
   }
 
@@ -169,25 +218,134 @@ function ModelSettingBlock() {
     )
   }
 
+  const renderCapabilitiesDesc = () => {
+    const capability = capabilities[setting.model]
+    if (!capability) {
+      return null
+    }
+    return (
+      <div className="model-capability-desc">
+        <div>
+          <strong>Resolution:</strong> {capability.recommended_resolution}
+        </div>
+        <div>
+          <strong>VRAM:</strong> {capability.vram_estimate}
+        </div>
+        <div>
+          <strong>Speed:</strong> {capability.speed}
+        </div>
+        <div>
+          <strong>Quality:</strong> {capability.quality}
+        </div>
+      </div>
+    )
+  }
+
+  const renderQualityPresetDesc = () => {
+    return (
+      <SettingBlock
+        className="sub-setting-block"
+        title="Quality"
+        desc="Preset that tunes sampler and step counts for the selected model."
+        input={
+          <Selector
+            width={120}
+            value={setting.qualityPreset as string}
+            options={Object.values(QualityPreset)}
+            onChange={val => onQualityPresetChange(val as QualityPreset)}
+          />
+        }
+      />
+    )
+  }
+
+  const renderTilingDesc = () => {
+    return (
+      <>
+        <SettingBlock
+          className="sub-setting-block"
+          title="Tiled Inference"
+          desc="Split large images into overlapping tiles to reduce GPU memory usage."
+          input={
+            <Switch
+              checked={setting.enableTiling}
+              onCheckedChange={checked => {
+                setSettingState(old => {
+                  return { ...old, enableTiling: checked }
+                })
+              }}
+            >
+              <SwitchThumb />
+            </Switch>
+          }
+        />
+        {setting.enableTiling ? (
+          <>
+            <NumberInputSetting
+              title="Tile Size"
+              value={`${setting.tileSize}`}
+              suffix="pixel"
+              onValue={value => {
+                const val = value.length === 0 ? 0 : parseInt(value, 10)
+                setSettingState(old => {
+                  return { ...old, tileSize: val }
+                })
+              }}
+            />
+            <NumberInputSetting
+              title="Tile Overlap"
+              value={`${setting.tileOverlap}`}
+              suffix="pixel"
+              onValue={value => {
+                const val = value.length === 0 ? 0 : parseInt(value, 10)
+                setSettingState(old => {
+                  return { ...old, tileOverlap: val }
+                })
+              }}
+            />
+          </>
+        ) : null}
+      </>
+    )
+  }
+
   const renderOptionDesc = (): ReactNode => {
+    let modelDesc: ReactNode
     switch (setting.model) {
       case AIModel.LAMA:
-        return undefined
+        modelDesc = undefined
+        break
       case AIModel.LDM:
-        return renderLDMModelDesc()
+        modelDesc = renderLDMModelDesc()
+        break
       case AIModel.ZITS:
-        return renderZITSModelDesc()
+        modelDesc = renderZITSModelDesc()
+        break
       case AIModel.MAT:
-        return undefined
+        modelDesc = undefined
+        break
       case AIModel.FCF:
-        return renderFCFModelDesc()
+        modelDesc = renderFCFModelDesc()
+        break
       case AIModel.SD14:
-        return undefined
+        modelDesc = undefined
+        break
       case AIModel.CV2:
-        return renderOpenCV2Desc()
+        modelDesc = renderOpenCV2Desc()
+        break
       default:
-        return <></>
+        modelDesc = <></>
+        break
     }
+
+    return (
+      <>
+        {renderCapabilitiesDesc()}
+        {renderQualityPresetDesc()}
+        {renderTilingDesc()}
+        {modelDesc}
+      </>
+    )
   }
 
   const renderPaperCodeBadge = (): ReactNode => {

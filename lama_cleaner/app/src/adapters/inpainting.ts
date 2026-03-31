@@ -11,6 +11,14 @@ export interface ServerStatus {
   model: string | null
 }
 
+export interface ModelCapability {
+  display_name: string
+  recommended_resolution: string
+  vram_estimate: string
+  speed: string
+  quality: string
+}
+
 async function parseError(res: Response): Promise<string> {
   try {
     const data = await res.json()
@@ -57,11 +65,15 @@ export default async function inpaint(
   fd.append('cropperWidth', cropperRect.width.toString())
   fd.append('useCropper', settings.showCropper ? 'true' : 'false')
   fd.append('sdMaskBlur', settings.sdMaskBlur.toString())
+  fd.append('qualityPreset', settings.qualityPreset.toString())
   fd.append('sdStrength', settings.sdStrength.toString())
   fd.append('sdSteps', settings.sdSteps.toString())
   fd.append('sdGuidanceScale', settings.sdGuidanceScale.toString())
   fd.append('sdSampler', settings.sdSampler.toString())
   fd.append('sdSeed', seed ? seed.toString() : '-1')
+  fd.append('enableTiling', settings.enableTiling ? 'true' : 'false')
+  fd.append('tileSize', settings.tileSize.toString())
+  fd.append('tileOverlap', settings.tileOverlap.toString())
 
   fd.append('cv2Radius', settings.cv2Radius.toString())
   fd.append('cv2Flag', settings.cv2Flag.toString())
@@ -110,6 +122,16 @@ export function modelDownloaded(name: string) {
   return fetch(`${API_ENDPOINT}/model_downloaded/${name}`, {
     method: 'GET',
   })
+}
+
+export async function modelCapabilities(): Promise<Record<string, ModelCapability>> {
+  const res = await fetch(`${API_ENDPOINT}/model_capabilities`, {
+    method: 'GET',
+  })
+  if (!res.ok) {
+    throw new Error(await parseError(res))
+  }
+  return res.json()
 }
 
 export async function serverStatus(): Promise<ServerStatus> {

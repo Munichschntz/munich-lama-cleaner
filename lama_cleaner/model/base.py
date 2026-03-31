@@ -2,6 +2,7 @@ import abc
 from typing import Optional
 
 import cv2
+import numpy as np
 import torch
 from loguru import logger
 
@@ -111,9 +112,51 @@ class InpaintModel:
                 ]
 
         if inpaint_result is None:
-            inpaint_result = self._pad_forward(image, mask, config)
+            if config.enable_tiling and max(image.shape[:2]) > config.tile_size:
+                logger.info(
+                    f"Run tiled strategy, tile_size: {config.tile_size}, overlap: {config.tile_overlap}"
+                )
+                inpaint_result = self._tile_forward(image, mask, config)
+            else:
+                inpaint_result = self._pad_forward(image, mask, config)
 
         return inpaint_result
+
+    def _tile_forward(self, image, mask, config: Config):
+        tile_size = max(256, int(config.tile_size))
+        overlap = max(0, int(config.tile_overlap))
+        stride = tile_size - overlap * 2
+        if stride <= 0:
+            stride = tile_size
+
+        img_h, img_w = image.shape[:2]
+        result = image[:, :, ::-1].copy()
+
+        def starts(length):
+            if length <= tile_size:
+                return [0]
+            points = list(range(0, length - tile_size + 1, stride))
+            if points[-1] != length - tile_size:
+                points.append(length - tile_size)
+            return points
+
+        y_starts = starts(img_h)
+        x_starts = starts(img_w)
+
+        for y in y_starts:
+            for x in x_starts:
+                y1, y2 = y, min(y + tile_size, img_h)
+                x1, x2 = x, min(x + tile_size, img_w)
+                tile_mask = mask[y1:y2, x1:x2]
+                if np.max(tile_mask) < 127:
+                    continue
+
+                tile_image = image[y1:y2, x1:x2, :]
+                tile_result = self._pad_forward(tile_image, tile_mask, config)
+                repaint_indices = tile_mask >= 127
+                result[y1:y2, x1:x2, :][repaint_indices] = tile_result[repaint_indices]
+
+        return result
 
     def _crop_box(self, image, mask, box, config: Config):
         """
