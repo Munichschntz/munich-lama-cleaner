@@ -45,6 +45,6 @@ class Config(BaseModel):
     # -1 mean random seed
     sd_seed: int = 42
 
-        # cv2
-        cv2_radius: int = 3
-        cv2_flag: str = "INPAINT_TELEA"
+    # cv2
+    cv2_radius: int = 3
+    cv2_flag: str = "INPAINT_TELEA"

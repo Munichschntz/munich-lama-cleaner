@@ -18,6 +18,16 @@ export const fileState = atom<File | undefined>({
   default: undefined,
 })
 
+export const batchFilesState = atom<File[]>({
+  key: 'batchFilesState',
+  default: [],
+})
+
+export const batchIndexState = atom<number>({
+  key: 'batchIndexState',
+  default: 0,
+})
+
 export interface Rect {
   x: number
   y: number
@@ -28,6 +38,8 @@ export interface Rect {
 interface AppState {
   disableShortCuts: boolean
   isInpainting: boolean
+  inpaintingMessage: string
+  inpaintingProgress: number | null
 }
 
 export const appState = atom<AppState>({
@@ -35,7 +47,11 @@ export const appState = atom<AppState>({
   default: {
     disableShortCuts: false,
     isInpainting: false,
+    inpaintingMessage: '',
+    inpaintingProgress: null,
   },
+})
+
 export const promptState = atom<string>({
   key: 'promptState',
   default: '',
@@ -43,13 +59,6 @@ export const promptState = atom<string>({
 
 /** @deprecated Use promptState instead */
 export const propmtState = promptState
-
-})
-
-export const propmtState = atom<string>({
-  key: 'promptState',
-  default: '',
-})
 
 export const isInpaintingState = selector({
   key: 'isInpainting',
@@ -59,7 +68,20 @@ export const isInpaintingState = selector({
   },
   set: ({ get, set }, newValue: any) => {
     const app = get(appState)
-    set(appState, { ...app, isInpainting: newValue })
+    if (newValue) {
+      set(appState, {
+        ...app,
+        isInpainting: true,
+        inpaintingMessage: 'Inpainting...',
+      })
+      return
+    }
+    set(appState, {
+      ...app,
+      isInpainting: false,
+      inpaintingMessage: '',
+      inpaintingProgress: null,
+    })
   },
 })
 

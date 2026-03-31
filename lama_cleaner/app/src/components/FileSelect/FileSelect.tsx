@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import useResolution from '../../hooks/useResolution'
 
 type FileSelectProps = {
-  onSelection: (file: File) => void
+  onSelection: (file: File, files: File[]) => void
 }
 
 export default function FileSelect(props: FileSelectProps) {
@@ -13,7 +13,7 @@ export default function FileSelect(props: FileSelectProps) {
 
   const resolution = useResolution()
 
-  function onFileSelected(file: File) {
+  function onFileSelected(file: File, allFiles: File[] = [file]) {
     if (!file) {
       return
     }
@@ -27,7 +27,7 @@ export default function FileSelect(props: FileSelectProps) {
       if (file.size > 20 * 1024 * 1024) {
         throw new Error('file too large')
       }
-      onSelection(file)
+      onSelection(file, allFiles)
     } catch (e) {
       // eslint-disable-next-line
       alert(`error: ${(e as any).message}`)
@@ -92,8 +92,11 @@ export default function FileSelect(props: FileSelectProps) {
   async function handleDrop(ev: React.DragEvent) {
     ev.preventDefault()
     const items = await getAllFileEntries(ev.dataTransfer.items)
+    const imageFiles = items.filter(item => item.type.match('image.*'))
     setDragHover(false)
-    onFileSelected(items[0])
+    if (imageFiles.length > 0) {
+      onFileSelected(imageFiles[0], imageFiles)
+    }
   }
 
   return (
@@ -115,10 +118,15 @@ export default function FileSelect(props: FileSelectProps) {
           id={uploadElemId}
           name={uploadElemId}
           type="file"
+          multiple
           onChange={ev => {
-            const file = ev.currentTarget.files?.[0]
+            const selectedFiles = Array.from(ev.currentTarget.files || [])
+            const imageFiles = selectedFiles.filter(item =>
+              item.type.match('image.*')
+            )
+            const file = imageFiles[0]
             if (file) {
-              onFileSelected(file)
+              onFileSelected(file, imageFiles)
             }
           }}
           accept="image/png, image/jpeg"

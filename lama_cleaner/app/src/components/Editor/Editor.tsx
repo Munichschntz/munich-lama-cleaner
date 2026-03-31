@@ -32,10 +32,13 @@ import {
   useImage,
 } from '../../utils'
 import {
+  batchFilesState,
+  batchIndexState,
   cropperState,
+  fileState,
   isInpaintingState,
   isSDState,
-    promptState,
+  promptState,
   runManuallyState,
   seedState,
   settingState,
@@ -58,6 +61,30 @@ interface Line {
 }
 
 type LineGroup = Array<Line>
+
+interface HistorySnapshot {
+  id: string
+  label: string
+  renderIndex: number
+  src: string
+}
+
+interface EditorSession {
+  version: number
+  fileName: string
+  settings: any
+  prompt: string
+  seed: number
+  cropperRect: { x: number; y: number; width: number; height: number }
+  sizeLimit: number
+  brushSize: number
+  lineGroups: LineGroup[]
+  curLineGroup: LineGroup
+  lastLineGroup: LineGroup
+  historySnapshots: HistorySnapshot[]
+}
+
+const EDITOR_SESSION_KEY = 'lama-cleaner-editor-session-v1'
 
 function drawLines(
   ctx: CanvasRenderingContext2D,
@@ -85,12 +112,32 @@ function mouseXY(ev: SyntheticEvent) {
   return { x: mouseEvent.offsetX, y: mouseEvent.offsetY }
 }
 
+async function srcToDataUrl(src: string): Promise<string> {
+  const response = await fetch(src)
+  const blob = await response.blob()
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result)
+      } else {
+        reject(new Error('Unable to serialize image'))
+      }
+    }
+    reader.onerror = () => reject(new Error('Unable to serialize image'))
+    reader.readAsDataURL(blob)
+  })
+}
+
 export default function Editor(props: EditorProps) {
   const { file } = props
-  const promptVal = useRecoilValue(promptState)
-  const settings = useRecoilValue(settingState)
+  const [fileVal, setFile] = useRecoilState(fileState)
+  const [batchFiles, setBatchFiles] = useRecoilState(batchFilesState)
+  const [batchIndex, setBatchIndex] = useRecoilState(batchIndexState)
+  const [promptVal, setPrompt] = useRecoilState(promptState)
+  const [settings, setSettings] = useRecoilState(settingState)
   const [seedVal, setSeed] = useRecoilState(seedState)
-  const cropperRect = useRecoilValue(cropperState)
+  const [cropperRect, setCropperRect] = useRecoilState(cropperState)
   const [toastVal, setToastState] = useRecoilState(toastState)
   const [isInpainting, setIsInpainting] = useRecoilState(isInpaintingState)
   const runMannually = useRecoilValue(runManuallyState)
@@ -126,6 +173,8 @@ export default function Editor(props: EditorProps) {
   const [isMultiStrokeKeyPressed, setIsMultiStrokeKeyPressed] = useState(false)
 
   const [sliderPos, setSliderPos] = useState<number>(0)
+  const [historySnapshots, setHistorySnapshots] = useState<HistorySnapshot[]>([])
+  const [selectedSnapshotId, setSelectedSnapshotId] = useState<string>('original')
 
   // redo 相关
   const [redoRenders, setRedoRenders] = useState<HTMLImageElement[]>([])
@@ -269,9 +318,34 @@ export default function Editor(props: EditorProps) {
           const prevRenders = renders.slice(0, -1)
           const newRenders = [...prevRenders, newRender]
           setRenders(newRenders)
+          setHistorySnapshots(prev => {
+            const kept = prev.slice(0, -1)
+            const next = [
+              ...kept,
+              {
+                id: `${Date.now()}-${newRenders.length - 1}`,
+                label: `Step ${newRenders.length}`,
+                renderIndex: newRenders.length - 1,
+                src: newRender.currentSrc,
+              },
+            ]
+            return next.slice(-20)
+          })
         } else {
           const newRenders = [...renders, newRender]
           setRenders(newRenders)
+          setHistorySnapshots(prev => {
+            const next = [
+              ...prev,
+              {
+                id: `${Date.now()}-${newRenders.length - 1}`,
+                label: `Step ${newRenders.length}`,
+                renderIndex: newRenders.length - 1,
+                src: newRender.currentSrc,
+              },
+            ]
+            return next.slice(-20)
+          })
         }
 
         draw(newRender, [])
@@ -324,7 +398,7 @@ export default function Editor(props: EditorProps) {
     return () => {
       emitter.off(EVENT_PROMPT)
     }
-  }, [hadDrawSomething, runInpainting, prompt])
+  }, [hadDrawSomething, runInpainting, promptVal, lastLineGroup.length, setToastState])
 
   const hadRunInpainting = () => {
     return renders.length !== 0
@@ -440,26 +514,240 @@ export default function Editor(props: EditorProps) {
     setRedoRenders([])
   }
 
-  useEffect(() => {
-    window.addEventListener('resize', () => {
-      resetZoom()
-    })
-    return () => {
-      window.removeEventListener('resize', () => {
-        resetZoom()
+  const compareImageSrc =
+    selectedSnapshotId === 'original'
+      ? original.src
+      : historySnapshots.find(item => item.id === selectedSnapshotId)?.src ||
+        original.src
+
+  const restoreSnapshot = useCallback(
+    (snapshotId: string) => {
+      const snapshot = historySnapshots.find(item => item.id === snapshotId)
+      if (!snapshot) {
+        return
+      }
+      const toIndex = snapshot.renderIndex
+      if (toIndex < 0 || toIndex >= renders.length) {
+        return
+      }
+      const restoredRenders = renders.slice(0, toIndex + 1)
+      setRenders(restoredRenders)
+      setLineGroups(lineGroups.slice(0, toIndex + 1))
+      setCurLineGroup([])
+      setLastLineGroup([])
+      setIsDraging(false)
+      draw(restoredRenders[restoredRenders.length - 1], [])
+      setToastState({
+        open: true,
+        desc: `Restored ${snapshot.label}`,
+        state: 'success',
+        duration: 1500,
+      })
+    },
+    [historySnapshots, renders, lineGroups, draw, setToastState]
+  )
+
+  const saveSession = useCallback(async () => {
+    try {
+      const sessionSnapshots = await Promise.all(
+        historySnapshots.map(async item => {
+          return {
+            ...item,
+            src: await srcToDataUrl(item.src),
+          }
+        })
+      )
+
+      const sessionPayload: EditorSession = {
+        version: 1,
+        fileName: file.name,
+        settings,
+        prompt: promptVal,
+        seed: seedVal,
+        cropperRect,
+        sizeLimit,
+        brushSize,
+        lineGroups,
+        curLineGroup,
+        lastLineGroup,
+        historySnapshots: sessionSnapshots,
+      }
+      localStorage.setItem(EDITOR_SESSION_KEY, JSON.stringify(sessionPayload))
+      setToastState({
+        open: true,
+        desc: 'Session saved',
+        state: 'success',
+        duration: 1500,
+      })
+    } catch (e: any) {
+      setToastState({
+        open: true,
+        desc: e?.message || 'Unable to save session',
+        state: 'error',
+        duration: 2500,
       })
     }
-  }, [windowSize, resetZoom])
+  }, [
+    historySnapshots,
+    file.name,
+    settings,
+    promptVal,
+    seedVal,
+    cropperRect,
+    sizeLimit,
+    brushSize,
+    lineGroups,
+    curLineGroup,
+    lastLineGroup,
+    setToastState,
+  ])
+
+  const loadSession = useCallback(async () => {
+    const raw = localStorage.getItem(EDITOR_SESSION_KEY)
+    if (!raw) {
+      setToastState({
+        open: true,
+        desc: 'No saved session found',
+        state: 'error',
+        duration: 2000,
+      })
+      return
+    }
+
+    try {
+      const session = JSON.parse(raw) as EditorSession
+      if (session.fileName !== file.name) {
+        setToastState({
+          open: true,
+          desc: 'Saved session belongs to a different file',
+          state: 'error',
+          duration: 2500,
+        })
+        return
+      }
+
+      setSettings(old => ({ ...old, ...session.settings }))
+      setPrompt(session.prompt || '')
+      setSeed(session.seed)
+      setCropperRect(session.cropperRect)
+      setSizeLimit(session.sizeLimit || 1080)
+      setBrushSize(session.brushSize || 40)
+      setLineGroups(session.lineGroups || [])
+      setCurLineGroup(session.curLineGroup || [])
+      setLastLineGroup(session.lastLineGroup || [])
+
+      const restoredSnapshots: HistorySnapshot[] = []
+      for (const snapshot of session.historySnapshots || []) {
+        const img = new Image()
+        await loadImage(img, snapshot.src)
+        restoredSnapshots.push({
+          ...snapshot,
+          src: img.currentSrc || snapshot.src,
+        })
+      }
+
+      const restoredRenders: HTMLImageElement[] = []
+      for (const snapshot of restoredSnapshots) {
+        const img = new Image()
+        await loadImage(img, snapshot.src)
+        restoredRenders.push(img)
+      }
+
+      setHistorySnapshots(restoredSnapshots)
+      setRenders(restoredRenders)
+
+      if (restoredRenders.length > 0) {
+        draw(restoredRenders[restoredRenders.length - 1], session.curLineGroup || [])
+      } else {
+        drawOnCurrentRender(session.curLineGroup || [])
+      }
+
+      setToastState({
+        open: true,
+        desc: 'Session restored',
+        state: 'success',
+        duration: 2000,
+      })
+    } catch (e: any) {
+      setToastState({
+        open: true,
+        desc: e?.message || 'Unable to restore session',
+        state: 'error',
+        duration: 2500,
+      })
+    }
+  }, [
+    file.name,
+    setToastState,
+    setSettings,
+    setPrompt,
+    setSeed,
+    setCropperRect,
+    draw,
+    drawOnCurrentRender,
+  ])
+
+  const navigateBatch = useCallback(
+    (offset: number) => {
+      if (!fileVal || batchFiles.length <= 1) {
+        return
+      }
+      const nextIndex = batchIndex + offset
+      if (nextIndex < 0 || nextIndex >= batchFiles.length) {
+        return
+      }
+
+      if (renders.length > 0) {
+        const name = file.name.replace(/(\.[\w\d_-]+)$/i, '_cleanup$1')
+        const curRender = renders[renders.length - 1]
+        downloadImage(curRender.currentSrc, name)
+      }
+
+      setBatchIndex(nextIndex)
+      setFile(batchFiles[nextIndex])
+    },
+    [batchFiles, batchIndex, fileVal, renders, file.name, setBatchIndex, setFile]
+  )
+
+  useEffect(() => {
+    window.addEventListener('resize', resetZoom)
+    return () => {
+      window.removeEventListener('resize', resetZoom)
+    }
+  }, [resetZoom])
+
+  useEffect(() => {
+    if (selectedSnapshotId === 'original') {
+      return
+    }
+    const exists = historySnapshots.some(item => item.id === selectedSnapshotId)
+    if (!exists) {
+      setSelectedSnapshotId('original')
+    }
+  }, [historySnapshots, selectedSnapshotId])
 
   const handleEscPressed = () => {
     if (isInpainting) {
       return
-      useEffect(() => {
-        window.addEventListener('resize', resetZoom)
-        return () => {
-          window.removeEventListener('resize', resetZoom)
-        }
-      }, [resetZoom])
+    }
+
+    if (isDraging) {
+      setIsDraging(false)
+      if (!runMannually) {
+        setCurLineGroup([])
+        drawOnCurrentRender([])
+      }
+      return
+    }
+
+    if (isMultiStrokeKeyPressed) {
+      setIsMultiStrokeKeyPressed(false)
+      return
+    }
+
+    resetZoom()
+  }
+
   useKey(
     'Escape',
     handleEscPressed,
@@ -997,7 +1285,7 @@ export default function Editor(props: EditorProps) {
 
               <img
                 className="original-image"
-                src={original.src}
+                src={compareImageSrc}
                 alt="original"
                 style={{
                   width: `${original.naturalWidth}px`,
@@ -1051,6 +1339,57 @@ export default function Editor(props: EditorProps) {
           onClick={() => setShowRefBrush(false)}
         />
         <div className="editor-toolkit-btns">
+          <Button
+            toolTip="Previous Batch File"
+            tooltipPosition="top"
+            disabled={batchFiles.length <= 1 || batchIndex === 0}
+            onClick={() => navigateBatch(-1)}
+          >
+            Prev
+          </Button>
+          <Button
+            toolTip="Next Batch File"
+            tooltipPosition="top"
+            disabled={batchFiles.length <= 1 || batchIndex >= batchFiles.length - 1}
+            onClick={() => navigateBatch(1)}
+          >
+            Next
+          </Button>
+          {batchFiles.length > 1 && (
+            <span className="editor-batch-counter">
+              {batchIndex + 1}/{batchFiles.length}
+            </span>
+          )}
+          <Button toolTip="Save Session" tooltipPosition="top" onClick={saveSession}>
+            Save Session
+          </Button>
+          <Button toolTip="Load Session" tooltipPosition="top" onClick={loadSession}>
+            Load Session
+          </Button>
+          <select
+            aria-label="Compare source"
+            value={selectedSnapshotId}
+            onChange={e => setSelectedSnapshotId(e.target.value)}
+          >
+            <option value="original">Compare: Original</option>
+            {historySnapshots.map(snapshot => (
+              <option key={snapshot.id} value={snapshot.id}>
+                Compare: {snapshot.label}
+              </option>
+            ))}
+          </select>
+          <Button
+            toolTip="Restore Selected Snapshot"
+            tooltipPosition="top"
+            disabled={selectedSnapshotId === 'original'}
+            onClick={() => {
+              if (selectedSnapshotId !== 'original') {
+                restoreSnapshot(selectedSnapshotId)
+              }
+            }}
+          >
+            Restore
+          </Button>
           <Button
             toolTip="Reset Zoom & Pan"
             tooltipPosition="top"

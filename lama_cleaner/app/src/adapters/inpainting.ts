@@ -3,6 +3,23 @@ import { dataURItoBlob } from '../utils'
 
 export const API_ENDPOINT = `${process.env.REACT_APP_INPAINTING_URL}`
 
+export interface ServerStatus {
+  phase: string
+  message: string
+  progress: number | null
+  updated_at: number
+  model: string | null
+}
+
+async function parseError(res: Response): Promise<string> {
+  try {
+    const data = await res.json()
+    return data?.error?.message || `Server error (${res.status})`
+  } catch {
+    return `Server error (${res.status})`
+  }
+}
+
 export default async function inpaint(
   imageFile: File,
   maskBase64: string,
@@ -46,8 +63,8 @@ export default async function inpaint(
   fd.append('sdSampler', settings.sdSampler.toString())
   fd.append('sdSeed', seed ? seed.toString() : '-1')
 
-    fd.append('cv2Radius', settings.cv2Radius.toString())
-    fd.append('cv2Flag', settings.cv2Flag.toString())
+  fd.append('cv2Radius', settings.cv2Radius.toString())
+  fd.append('cv2Flag', settings.cv2Flag.toString())
 
   if (sizeLimit === undefined) {
     fd.append('sizeLimit', '1080')
@@ -60,12 +77,16 @@ export default async function inpaint(
       method: 'POST',
       body: fd,
     })
-    if (res.ok) {
-      const blob = await res.blob()
-      const newSeed = res.headers.get('x-seed')
-      return { blob: URL.createObjectURL(blob), seed: newSeed }
+    if (!res.ok) {
+      throw new Error(await parseError(res))
     }
-  } catch {
+    const blob = await res.blob()
+    const newSeed = res.headers.get('x-seed')
+    return { blob: URL.createObjectURL(blob), seed: newSeed }
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw error
+    }
     throw new Error('Something went wrong on server side.')
   }
 }
@@ -89,4 +110,14 @@ export function modelDownloaded(name: string) {
   return fetch(`${API_ENDPOINT}/model_downloaded/${name}`, {
     method: 'GET',
   })
+}
+
+export async function serverStatus(): Promise<ServerStatus> {
+  const res = await fetch(`${API_ENDPOINT}/server_status`, {
+    method: 'GET',
+  })
+  if (!res.ok) {
+    throw new Error(await parseError(res))
+  }
+  return res.json()
 }

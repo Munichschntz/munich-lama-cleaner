@@ -21,61 +21,82 @@ const Workspace = ({ file }: WorkspaceProps) => {
   const [toastVal, setToastState] = useRecoilState(toastState)
   const isSD = useRecoilValue(isSDState)
 
+  const parseResponseError = async (res: Response) => {
+    try {
+      const data = await res.json()
+      return data?.error?.message || 'Server error'
+    } catch {
+      return 'Server error'
+    }
+  }
+
   const onSettingClose = async () => {
-    const curModel = await currentModel().then(res => res.text())
-    if (curModel === settings.model) {
-      return
-    }
-    const downloaded = await modelDownloaded(settings.model).then(res =>
-      res.text()
-    )
+    let curModel: AIModel = settings.model
+    try {
+      const curModelRes = await currentModel()
+      if (!curModelRes.ok) {
+        throw new Error(await parseResponseError(curModelRes))
+      }
+      const curModelJson = await curModelRes.json()
+      curModel = curModelJson.model as AIModel
+      if (curModel === settings.model) {
+        return
+      }
 
-    const { model } = settings
+      const downloadedRes = await modelDownloaded(settings.model)
+      if (!downloadedRes.ok) {
+        throw new Error(await parseResponseError(downloadedRes))
+      }
+      const downloadedJson = await downloadedRes.json()
+      const downloaded = Boolean(downloadedJson.downloaded)
 
-    let loadingMessage = `Switching to ${model} model`
-    let loadingDuration = 3000
-    if (downloaded === 'False') {
-      loadingMessage = `Downloading ${model} model, this may take a while`
-      loadingDuration = 9999999999
-    }
+      const { model } = settings
 
-    setToastState({
-      open: true,
-      desc: loadingMessage,
-      state: 'loading',
-      duration: loadingDuration,
-    })
+      let loadingMessage = `Switching to ${model} model`
+      let loadingDuration = 3000
+      if (!downloaded) {
+        loadingMessage = `Downloading ${model} model, this may take a while`
+        loadingDuration = 9999999999
+      }
 
-    switchModel(model)
-      .then(res => {
-        if (res.ok) {
-          setToastState({
-            open: true,
-            desc: `Switch to ${model} model success`,
-            state: 'success',
-            duration: 3000,
-          })
-        } else {
-          throw new Error('Server error')
-        }
+      setToastState({
+        open: true,
+        desc: loadingMessage,
+        state: 'loading',
+        duration: loadingDuration,
       })
-      .catch(() => {
-        setToastState({
-          open: true,
-          desc: `Switch to ${model} model failed`,
-          state: 'error',
-          duration: 3000,
-        })
-        setSettingState(old => {
-          return { ...old, model: curModel as AIModel }
-        })
+
+      const switchRes = await switchModel(model)
+      if (!switchRes.ok) {
+        throw new Error(await parseResponseError(switchRes))
+      }
+
+      setToastState({
+        open: true,
+        desc: `Switch to ${model} model success`,
+        state: 'success',
+        duration: 3000,
       })
+    } catch (error: unknown) {
+      setToastState({
+        open: true,
+        desc:
+          error instanceof Error
+            ? `Switch model failed: ${error.message}`
+            : 'Switch model failed',
+        state: 'error',
+        duration: 3000,
+      })
+      setSettingState(old => {
+        return { ...old, model: curModel }
+      })
+    }
   }
 
   useEffect(() => {
     currentModel()
-      .then(res => res.text())
-      .then(model => {
+      .then(res => res.json())
+      .then(({ model }) => {
         setSettingState(old => {
           return { ...old, model: model as AIModel }
         })

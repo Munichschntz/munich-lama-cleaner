@@ -5,6 +5,7 @@ import logging
 import multiprocessing
 import os
 import random
+import threading
 import time
 import imghdr
 from pathlib import Path
@@ -26,7 +27,7 @@ try:
 except:
     pass
 
-from flask import Flask, request, send_file, cli, make_response
+from flask import Flask, request, send_file, cli, make_response, jsonify
 
 # Disable ability for Flask to display warning about using a development server in a production environment.
 # https://gist.github.com/jerblack/735b9953ba1ab6234abb43174210d356
@@ -74,6 +75,13 @@ CORS(app, expose_headers=["Content-Disposition"])
 model: ModelManager = None
 device = None
 input_image_path: str = None
+status_lock = threading.Lock()
+server_status = {
+    "phase": "idle",
+    "message": "Idle",
+    "progress": None,
+    "updated_at": time.time(),
+}
 
 
 def get_image_ext(img_bytes):
@@ -84,112 +92,236 @@ def get_image_ext(img_bytes):
 
 
 def diffuser_callback(step: int):
-    pass
+    set_server_status("inpainting", f"Diffusion step {step}", step)
     # socketio.emit('diffusion_step', {'diffusion_step': step})
+
+
+def set_server_status(phase: str, message: str, progress: Union[int, None] = None):
+    with status_lock:
+        server_status["phase"] = phase
+        server_status["message"] = message
+        server_status["progress"] = progress
+        server_status["updated_at"] = time.time()
+
+
+def status_snapshot():
+    with status_lock:
+        return dict(server_status)
+
+
+def error_response(code: str, message: str, status: int = 400, details=None):
+    payload = {"error": {"code": code, "message": message}}
+    if details is not None:
+        payload["error"]["details"] = details
+    return jsonify(payload), status
+
+
+def parse_bool(raw_value, default: bool = False) -> bool:
+    if raw_value is None:
+        return default
+    if isinstance(raw_value, bool):
+        return raw_value
+    return str(raw_value).lower() in ("1", "true", "yes", "on")
+
+
+def get_form_field(form, key, aliases=None, default=None, deprecated_used=None):
+    if key in form:
+        return form.get(key)
+    aliases = aliases or []
+    for alias in aliases:
+        if alias in form:
+            if deprecated_used is not None:
+                deprecated_used.append(alias)
+            return form.get(alias)
+    return default
 
 
 @app.route("/inpaint", methods=["POST"])
 def process():
-    input = request.files
-    # RGB
-    origin_image_bytes = input["image"].read()
+    files = request.files
+    if "image" not in files or "mask" not in files:
+        return error_response(
+            "MISSING_FILE",
+            "Request must include both image and mask files",
+            status=400,
+        )
 
-    image, alpha_channel = load_img(origin_image_bytes)
-    original_shape = image.shape
-    interpolation = cv2.INTER_CUBIC
+    set_server_status("inpainting", "Preparing request", 0)
+    deprecated_used = []
+    try:
+        # RGB
+        origin_image_bytes = files["image"].read()
+        image, alpha_channel = load_img(origin_image_bytes)
+        original_shape = image.shape
+        interpolation = cv2.INTER_CUBIC
 
-    form = request.form
-    size_limit: Union[int, str] = form.get("sizeLimit", "1080")
-    if size_limit == "Original":
-        size_limit = max(image.shape)
-    else:
-        size_limit = int(size_limit)
+        form = request.form
+        size_limit: Union[int, str] = form.get("sizeLimit", "1080")
+        if size_limit == "Original":
+            size_limit = max(image.shape)
+        else:
+            size_limit = int(size_limit)
 
-    config = Config(
-        ldm_steps=form["ldmSteps"],
-        ldm_sampler=form["ldmSampler"],
-        hd_strategy=form["hdStrategy"],
-        zits_wireframe=form["zitsWireframe"],
-        hd_strategy_crop_margin=form["hdStrategyCropMargin"],
-        hd_strategy_crop_trigger_size=form.get(
-            "hdStrategyCropTriggerSize", form.get("hdStrategyCropTrigerSize")
-        ),
-        hd_strategy_resize_limit=form["hdStrategyResizeLimit"],
-        prompt=form["prompt"],
-        use_cropper=form.get("useCropper", form.get("useCroper", False)),
-        cropper_x=form.get("cropperX", form.get("croperX")),
-        cropper_y=form.get("cropperY", form.get("croperY")),
-        cropper_height=form.get("cropperHeight", form.get("croperHeight")),
-        cropper_width=form.get("cropperWidth", form.get("croperWidth")),
-        sd_mask_blur=form["sdMaskBlur"],
-        sd_strength=form["sdStrength"],
-        sd_steps=form["sdSteps"],
-        sd_guidance_scale=form["sdGuidanceScale"],
-        sd_sampler=form["sdSampler"],
-        sd_seed=form["sdSeed"],
-    )
-        config.cv2_radius = int(form.get("cv2Radius", 3))
-        config.cv2_flag = form.get("cv2Flag", "INPAINT_TELEA")
+        config = Config(
+            ldm_steps=get_form_field(form, "ldmSteps"),
+            ldm_sampler=get_form_field(form, "ldmSampler"),
+            hd_strategy=get_form_field(form, "hdStrategy"),
+            zits_wireframe=get_form_field(form, "zitsWireframe"),
+            hd_strategy_crop_margin=get_form_field(form, "hdStrategyCropMargin"),
+            hd_strategy_crop_trigger_size=get_form_field(
+                form,
+                "hdStrategyCropTriggerSize",
+                aliases=["hdStrategyCropTrigerSize"],
+                deprecated_used=deprecated_used,
+            ),
+            hd_strategy_resize_limit=get_form_field(form, "hdStrategyResizeLimit"),
+            prompt=get_form_field(form, "prompt", default=""),
+            use_cropper=parse_bool(
+                get_form_field(
+                    form,
+                    "useCropper",
+                    aliases=["useCroper"],
+                    default=False,
+                    deprecated_used=deprecated_used,
+                )
+            ),
+            cropper_x=get_form_field(
+                form,
+                "cropperX",
+                aliases=["croperX"],
+                deprecated_used=deprecated_used,
+            ),
+            cropper_y=get_form_field(
+                form,
+                "cropperY",
+                aliases=["croperY"],
+                deprecated_used=deprecated_used,
+            ),
+            cropper_height=get_form_field(
+                form,
+                "cropperHeight",
+                aliases=["croperHeight"],
+                deprecated_used=deprecated_used,
+            ),
+            cropper_width=get_form_field(
+                form,
+                "cropperWidth",
+                aliases=["croperWidth"],
+                deprecated_used=deprecated_used,
+            ),
+            sd_mask_blur=get_form_field(form, "sdMaskBlur", default=0),
+            sd_strength=get_form_field(form, "sdStrength", default=0.75),
+            sd_steps=get_form_field(form, "sdSteps", default=50),
+            sd_guidance_scale=get_form_field(form, "sdGuidanceScale", default=7.5),
+            sd_sampler=get_form_field(form, "sdSampler", default="ddim"),
+            sd_seed=get_form_field(form, "sdSeed", default=-1),
+            cv2_radius=get_form_field(form, "cv2Radius", default=3),
+            cv2_flag=get_form_field(form, "cv2Flag", default="INPAINT_TELEA"),
+        )
 
-    if config.sd_seed == -1:
-        config.sd_seed = random.randint(1, 9999999)
+        if config.sd_seed == -1:
+            config.sd_seed = random.randint(1, 9999999)
 
-    logger.info(f"Origin image shape: {original_shape}")
-    image = resize_max_size(image, size_limit=size_limit, interpolation=interpolation)
-    logger.info(f"Resized image shape: {image.shape}")
+        logger.info(f"Origin image shape: {original_shape}")
+        set_server_status("inpainting", "Resizing image", 15)
+        image = resize_max_size(image, size_limit=size_limit, interpolation=interpolation)
+        logger.info(f"Resized image shape: {image.shape}")
 
-    mask, _ = load_img(input["mask"].read(), gray=True)
-    mask = resize_max_size(mask, size_limit=size_limit, interpolation=interpolation)
+        mask, _ = load_img(files["mask"].read(), gray=True)
+        mask = resize_max_size(mask, size_limit=size_limit, interpolation=interpolation)
 
-    start = time.time()
-    res_np_img = model(image, mask, config)
-    logger.info(f"process time: {(time.time() - start) * 1000}ms")
+        set_server_status("inpainting", "Running model", 40)
+        start = time.time()
+        res_np_img = model(image, mask, config)
+        logger.info(f"process time: {(time.time() - start) * 1000}ms")
 
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
-    if alpha_channel is not None:
-        if alpha_channel.shape[:2] != res_np_img.shape[:2]:
-            alpha_channel = cv2.resize(
-                alpha_channel, dsize=(res_np_img.shape[1], res_np_img.shape[0])
+        if alpha_channel is not None:
+            if alpha_channel.shape[:2] != res_np_img.shape[:2]:
+                alpha_channel = cv2.resize(
+                    alpha_channel, dsize=(res_np_img.shape[1], res_np_img.shape[0])
+                )
+            res_np_img = np.concatenate(
+                (res_np_img, alpha_channel[:, :, np.newaxis]), axis=-1
             )
-        res_np_img = np.concatenate(
-            (res_np_img, alpha_channel[:, :, np.newaxis]), axis=-1
-        )
 
-    ext = get_image_ext(origin_image_bytes)
-
-    response = make_response(
-        send_file(
-            io.BytesIO(numpy_to_bytes(res_np_img, ext)),
-            mimetype=f"image/{ext}",
+        set_server_status("inpainting", "Encoding output", 95)
+        ext = get_image_ext(origin_image_bytes)
+        response = make_response(
+            send_file(
+                io.BytesIO(numpy_to_bytes(res_np_img, ext)),
+                mimetype=f"image/{ext}",
+            )
         )
-    )
-    response.headers["X-Seed"] = str(config.sd_seed)
-    return response
+        response.headers["X-Seed"] = str(config.sd_seed)
+        if deprecated_used:
+            response.headers["X-Deprecated-Fields"] = ",".join(sorted(set(deprecated_used)))
+
+        set_server_status("idle", "Idle", None)
+        return response
+    except Exception as e:
+        logger.exception("inpaint failed")
+        set_server_status("error", "Inpainting failed", None)
+        error_payload = error_response(
+            "INPAINT_FAILED",
+            "Unable to inpaint image with current parameters",
+            status=500,
+            details=str(e),
+        )
+        if deprecated_used:
+            error_payload[0].headers["X-Deprecated-Fields"] = ",".join(
+                sorted(set(deprecated_used))
+            )
+        return error_payload
 
 
 @app.route("/model")
 def current_model():
-    return model.name, 200
+    return jsonify({"model": model.name}), 200
 
 
 @app.route("/model_downloaded/<name>")
 def model_downloaded(name):
-    return str(model.is_downloaded(name)), 200
+    return jsonify({"downloaded": model.is_downloaded(name)}), 200
+
+
+@app.route("/server_status")
+def current_status():
+    status = status_snapshot()
+    status["model"] = model.name if model else None
+    return jsonify(status), 200
 
 
 @app.route("/model", methods=["POST"])
 def switch_model():
     new_name = request.form.get("name")
+    if not new_name:
+        return error_response("INVALID_MODEL", "name is required", status=400)
     if new_name == model.name:
-        return "Same model", 200
+        return jsonify({"message": "Same model", "model": model.name}), 200
 
     try:
+        set_server_status("switching_model", f"Switching to {new_name}", 10)
         model.switch(new_name)
     except NotImplementedError:
-        return f"{new_name} not implemented", 403
-    return f"ok, switch to {new_name}", 200
+        set_server_status("error", f"{new_name} not implemented", None)
+        return error_response(
+            "MODEL_NOT_IMPLEMENTED", f"{new_name} not implemented", status=403
+        )
+    except Exception as e:
+        logger.exception("switch model failed")
+        set_server_status("error", f"Switch model failed: {new_name}", None)
+        return error_response(
+            "MODEL_SWITCH_FAILED",
+            f"Failed to switch to {new_name}",
+            status=500,
+            details=str(e),
+        )
+
+    set_server_status("idle", "Idle", None)
+    return jsonify({"message": f"ok, switch to {new_name}", "model": new_name}), 200
 
 
 @app.route("/")

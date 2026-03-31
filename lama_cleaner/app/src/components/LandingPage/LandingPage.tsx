@@ -1,10 +1,12 @@
 import React from 'react'
 import { useSetRecoilState } from 'recoil'
-import { fileState } from '../../store/Atoms'
+import { batchFilesState, batchIndexState, fileState } from '../../store/Atoms'
 import FileSelect from '../FileSelect/FileSelect'
 
 const LandingPage = () => {
   const setFile = useSetRecoilState(fileState)
+  const setBatchFiles = useSetRecoilState(batchFilesState)
+  const setBatchIndex = useSetRecoilState(batchIndexState)
 
   return (
     <div className="landing-page">
@@ -14,7 +16,9 @@ const LandingPage = () => {
       </h1>
       <div className="landing-file-selector">
         <FileSelect
-          onSelection={async f => {
+          onSelection={async (f, files) => {
+            setBatchFiles(files)
+            setBatchIndex(0)
             setFile(f)
           }}
         />
