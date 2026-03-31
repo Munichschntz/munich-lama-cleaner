@@ -173,13 +173,13 @@ class SD(InpaintModel):
         img_h, img_w = image.shape[:2]
 
         # boxes = boxes_from_mask(mask)
-        if config.use_croper:
-            logger.info("use croper")
+        if config.use_cropper:
+            logger.info("use cropper")
             l, t, w, h = (
-                config.croper_x,
-                config.croper_y,
-                config.croper_width,
-                config.croper_height,
+                config.cropper_x,
+                config.cropper_y,
+                config.cropper_width,
+                config.cropper_height,
             )
             r = l + w
             b = t + h

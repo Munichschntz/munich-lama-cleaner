@@ -33,7 +33,7 @@ function HDSettingBlock() {
 
   const onCropTriggerSizeChange = (value: string) => {
     const val = value.length === 0 ? 0 : parseInt(value, 10)
-    setHDSettings({ hdStrategyCropTrigerSize: val })
+    setHDSettings({ hdStrategyCropTriggerSize: val })
   }
 
   const onCropMarginChange = (value: string) => {
@@ -90,7 +90,7 @@ function HDSettingBlock() {
         <div>Crop masking area from the original image to do inpainting.</div>
         <NumberInputSetting
           title="Trigger size"
-          value={`${hdSettings.hdStrategyCropTrigerSize}`}
+          value={`${hdSettings.hdStrategyCropTriggerSize}`}
           suffix="pixel"
           onValue={onCropTriggerSizeChange}
         />

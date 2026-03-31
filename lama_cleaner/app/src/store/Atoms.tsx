@@ -55,8 +55,8 @@ export const isInpaintingState = selector({
   },
 })
 
-export const croperState = atom<Rect>({
-  key: 'croperState',
+export const cropperState = atom<Rect>({
+  key: 'cropperState',
   default: {
     x: 0,
     y: 0,
@@ -65,41 +65,48 @@ export const croperState = atom<Rect>({
   },
 })
 
-export const croperX = selector({
-  key: 'croperX',
-  get: ({ get }) => get(croperState).x,
+export const cropperX = selector({
+  key: 'cropperX',
+  get: ({ get }) => get(cropperState).x,
   set: ({ get, set }, newValue: any) => {
-    const rect = get(croperState)
-    set(croperState, { ...rect, x: newValue })
+    const rect = get(cropperState)
+    set(cropperState, { ...rect, x: newValue })
   },
 })
 
-export const croperY = selector({
-  key: 'croperY',
-  get: ({ get }) => get(croperState).y,
+export const cropperY = selector({
+  key: 'cropperY',
+  get: ({ get }) => get(cropperState).y,
   set: ({ get, set }, newValue: any) => {
-    const rect = get(croperState)
-    set(croperState, { ...rect, y: newValue })
+    const rect = get(cropperState)
+    set(cropperState, { ...rect, y: newValue })
   },
 })
 
-export const croperHeight = selector({
-  key: 'croperHeight',
-  get: ({ get }) => get(croperState).height,
+export const cropperHeight = selector({
+  key: 'cropperHeight',
+  get: ({ get }) => get(cropperState).height,
   set: ({ get, set }, newValue: any) => {
-    const rect = get(croperState)
-    set(croperState, { ...rect, height: newValue })
+    const rect = get(cropperState)
+    set(cropperState, { ...rect, height: newValue })
   },
 })
 
-export const croperWidth = selector({
-  key: 'croperWidth',
-  get: ({ get }) => get(croperState).width,
+export const cropperWidth = selector({
+  key: 'cropperWidth',
+  get: ({ get }) => get(cropperState).width,
   set: ({ get, set }, newValue: any) => {
-    const rect = get(croperState)
-    set(croperState, { ...rect, width: newValue })
+    const rect = get(cropperState)
+    set(cropperState, { ...rect, width: newValue })
   },
 })
+
+// Deprecated aliases kept for backward compatibility across imports.
+export const croperState = cropperState
+export const croperX = cropperX
+export const croperY = cropperY
+export const croperHeight = cropperHeight
+export const croperWidth = cropperWidth
 
 interface ToastAtomState {
   open: boolean
@@ -126,7 +133,7 @@ export const shortcutsState = atom<boolean>({
 export interface HDSettings {
   hdStrategy: HDStrategy
   hdStrategyResizeLimit: number
-  hdStrategyCropTrigerSize: number
+  hdStrategyCropTriggerSize: number
   hdStrategyCropMargin: number
   enabled: boolean
 }
@@ -140,7 +147,7 @@ export enum CV2Flag {
 
 export interface Settings {
   show: boolean
-  showCroper: boolean
+  showCropper: boolean
   downloadMask: boolean
   graduallyInpainting: boolean
   runInpaintingManually: boolean
@@ -174,49 +181,49 @@ const defaultHDSettings: ModelsHDSettings = {
   [AIModel.LAMA]: {
     hdStrategy: HDStrategy.RESIZE,
     hdStrategyResizeLimit: 2048,
-    hdStrategyCropTrigerSize: 2048,
+    hdStrategyCropTriggerSize: 2048,
     hdStrategyCropMargin: 128,
     enabled: true,
   },
   [AIModel.LDM]: {
     hdStrategy: HDStrategy.CROP,
     hdStrategyResizeLimit: 1080,
-    hdStrategyCropTrigerSize: 1080,
+    hdStrategyCropTriggerSize: 1080,
     hdStrategyCropMargin: 128,
     enabled: true,
   },
   [AIModel.ZITS]: {
     hdStrategy: HDStrategy.CROP,
     hdStrategyResizeLimit: 1024,
-    hdStrategyCropTrigerSize: 1024,
+    hdStrategyCropTriggerSize: 1024,
     hdStrategyCropMargin: 128,
     enabled: true,
   },
   [AIModel.MAT]: {
     hdStrategy: HDStrategy.CROP,
     hdStrategyResizeLimit: 1024,
-    hdStrategyCropTrigerSize: 512,
+    hdStrategyCropTriggerSize: 512,
     hdStrategyCropMargin: 128,
     enabled: true,
   },
   [AIModel.FCF]: {
     hdStrategy: HDStrategy.CROP,
     hdStrategyResizeLimit: 512,
-    hdStrategyCropTrigerSize: 512,
+    hdStrategyCropTriggerSize: 512,
     hdStrategyCropMargin: 128,
     enabled: false,
   },
   [AIModel.SD14]: {
     hdStrategy: HDStrategy.ORIGINAL,
     hdStrategyResizeLimit: 768,
-    hdStrategyCropTrigerSize: 512,
+    hdStrategyCropTriggerSize: 512,
     hdStrategyCropMargin: 128,
     enabled: true,
   },
   [AIModel.CV2]: {
     hdStrategy: HDStrategy.RESIZE,
     hdStrategyResizeLimit: 1080,
-    hdStrategyCropTrigerSize: 512,
+    hdStrategyCropTriggerSize: 512,
     hdStrategyCropMargin: 128,
     enabled: true,
   },
@@ -235,7 +242,7 @@ export enum SDMode {
 
 export const settingStateDefault: Settings = {
   show: false,
-  showCroper: false,
+  showCropper: false,
   downloadMask: false,
   graduallyInpainting: true,
   runInpaintingManually: false,
@@ -270,6 +277,24 @@ const localStorageEffect =
     if (savedValue != null) {
       const storageSettings = JSON.parse(savedValue)
       storageSettings.show = false
+
+      if (
+        storageSettings.showCroper !== undefined &&
+        storageSettings.showCropper === undefined
+      ) {
+        storageSettings.showCropper = storageSettings.showCroper
+      }
+      if (storageSettings.hdSettings) {
+        Object.values(storageSettings.hdSettings).forEach((modelSettings: any) => {
+          if (
+            modelSettings?.hdStrategyCropTrigerSize !== undefined &&
+            modelSettings.hdStrategyCropTriggerSize === undefined
+          ) {
+            modelSettings.hdStrategyCropTriggerSize =
+              modelSettings.hdStrategyCropTrigerSize
+          }
+        })
+      }
 
       const restored = _.merge(
         _.cloneDeep(settingStateDefault),

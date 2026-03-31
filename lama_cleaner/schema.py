@@ -30,11 +30,11 @@ class Config(BaseModel):
 
     prompt: str = ""
     # 始终是在原图尺度上的值
-    use_croper: bool = False
-    croper_x: int = None
-    croper_y: int = None
-    croper_height: int = None
-    croper_width: int = None
+    use_cropper: bool = False
+    cropper_x: int = None
+    cropper_y: int = None
+    cropper_height: int = None
+    cropper_width: int = None
 
     # sd
     sd_mask_blur: int = 0

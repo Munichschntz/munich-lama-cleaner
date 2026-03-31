@@ -32,7 +32,7 @@ import {
   useImage,
 } from '../../utils'
 import {
-  croperState,
+  cropperState,
   isInpaintingState,
   isSDState,
   propmtState,
@@ -90,7 +90,7 @@ export default function Editor(props: EditorProps) {
   const promptVal = useRecoilValue(propmtState)
   const settings = useRecoilValue(settingState)
   const [seedVal, setSeed] = useRecoilState(seedState)
-  const croperRect = useRecoilValue(croperState)
+  const cropperRect = useRecoilValue(cropperState)
   const [toastVal, setToastState] = useRecoilState(toastState)
   const [isInpainting, setIsInpainting] = useRecoilState(isInpaintingState)
   const runMannually = useRecoilValue(runManuallyState)
@@ -248,7 +248,7 @@ export default function Editor(props: EditorProps) {
           targetFile,
           maskCanvas.toDataURL(),
           settings,
-          croperRect,
+          cropperRect,
           prompt,
           sizeLimit.toString(),
           sdSeed
@@ -297,7 +297,7 @@ export default function Editor(props: EditorProps) {
       maskCanvas,
       settings.graduallyInpainting,
       settings,
-      croperRect,
+      cropperRect,
       sizeLimit,
       promptVal,
       drawOnCurrentRender,
@@ -535,16 +535,16 @@ export default function Editor(props: EditorProps) {
   }
 
   const isOutsideCroper = (clickPnt: { x: number; y: number }) => {
-    if (clickPnt.x < croperRect.x) {
+    if (clickPnt.x < cropperRect.x) {
       return true
     }
-    if (clickPnt.y < croperRect.y) {
+    if (clickPnt.y < cropperRect.y) {
       return true
     }
-    if (clickPnt.x > croperRect.x + croperRect.width) {
+    if (clickPnt.x > cropperRect.x + cropperRect.width) {
       return true
     }
-    if (clickPnt.y > croperRect.y + croperRect.height) {
+    if (clickPnt.y > cropperRect.y + cropperRect.height) {
       return true
     }
     return false
@@ -574,7 +574,7 @@ export default function Editor(props: EditorProps) {
       return
     }
 
-    if (isSD && settings.showCroper && isOutsideCroper(mouseXY(ev))) {
+    if (isSD && settings.showCropper && isOutsideCroper(mouseXY(ev))) {
       return
     }
 
@@ -1011,7 +1011,7 @@ export default function Editor(props: EditorProps) {
             </div>
           </div>
 
-          {settings.showCroper ? (
+          {settings.showCropper ? (
             <Croper
               maxHeight={original.naturalHeight}
               maxWidth={original.naturalWidth}

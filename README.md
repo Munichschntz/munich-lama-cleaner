@@ -61,13 +61,13 @@ Available arguments:
 |-------------------|-------------------------------------------------------------------------------------------------------------------------------| -------- |
 | --model           | lama/ldm/zits/mat/fcf/sd1.4 See details in [Inpaint Model](#inpainting-model)                                                 | lama     |
 | --hf_access_token | stable-diffusion(sd) model need [huggingface access token](https://huggingface.co/docs/hub/security-tokens) to download model |          |
-| --sd-run-local    | Once the model as downloaded, you can pass this arg and remove `--hf_access_token`                                            |          |
+| --sd-run-local    | Once the model is downloaded, you can pass this arg and remove `--hf_access_token`                                            |          |
 | --sd-disable-nsfw | Disable stable-diffusion NSFW checker.                                                                                        |          |
 | --sd-cpu-textencoder | Always run stable-diffusion TextEncoder model on CPU.                                                                         |          |
 | --device          | cuda or cpu                                                                                                                   | cuda     |
 | --port            | Port for backend flask web server                                                                                             | 8080     |
 | --gui             | Launch lama-cleaner as a desktop application                                                                                  |          |
-| --gui_size        | Set the window size for the application                                                                                       | 1200 900 |
+| --gui-size        | Set the window size for the application                                                                                       | 1600 1000 |
 | --input           | Path to image you want to load by default                                                                                     | None     |
 | --debug           | Enable debug mode for flask web server                                                                                        |          |
 
@@ -113,7 +113,7 @@ Lama Cleaner provides three ways to run inpainting model on images, you can chan
 | **Resize**   | Resize the image to a smaller size before inpainting. Lama Cleaner will make sure that the area of the image outside the mask is not degraded. | :tada: :tada:        |
 | **Crop**     | Crop masking area from the original image to do inpainting                                                                                     | :tada: :tada: :tada: |
 
-## Download Model Mannually
+## Download Model Manually
 
 If you have problems downloading the model automatically when lama-cleaner start,
 you can download it manually. By default lama-cleaner will load model from `TORCH_HOME=~/.cache/torch/hub/checkpoints/`,
@@ -127,7 +127,7 @@ you can set `TORCH_HOME` to other folder and put the models there.
   - [FcF](https://github.com/Sanster/models/releases/tag/add_fcf)
 - Baidu:
   - https://pan.baidu.com/s/1vUd3BVqIpK6e8N_EA_ZJfw
-  - passward: flsu
+  - password: flsu
 
 ## Development
 
@@ -141,6 +141,11 @@ great online services [here](https://cleanup.pictures/).
 - Install dependencies:`cd lama_cleaner/app/ && yarn`
 - Start development server: `yarn start`
 - Build: `yarn build`
+
+### Publish
+
+- Linux/macOS: `bash publish.sh`
+- Windows PowerShell: `./publish.ps1`
 
 ## Docker
 

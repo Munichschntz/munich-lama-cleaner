@@ -27,13 +27,13 @@ const SidePanel = () => {
         <PopoverPrimitive.Portal>
           <PopoverPrimitive.Content className="side-panel-content">
             <SettingBlock
-              title="Show Croper"
+              title="Show Cropper"
               input={
                 <Switch
-                  checked={setting.showCroper}
+                  checked={setting.showCropper}
                   onCheckedChange={value => {
                     setSettingState(old => {
-                      return { ...old, showCroper: value }
+                      return { ...old, showCropper: value }
                     })
                   }}
                 >

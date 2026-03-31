@@ -52,7 +52,8 @@ os.environ["NUMEXPR_NUM_THREADS"] = NUM_THREADS
 if os.environ.get("CACHE_DIR"):
     os.environ["TORCH_HOME"] = os.environ["CACHE_DIR"]
 
-BUILD_DIR = os.environ.get("LAMA_CLEANER_BUILD_DIR", "app/build")
+DEFAULT_BUILD_DIR = Path(__file__).resolve().parent / "app" / "build"
+BUILD_DIR = Path(os.environ.get("LAMA_CLEANER_BUILD_DIR", str(DEFAULT_BUILD_DIR)))
 
 
 class NoFlaskwebgui(logging.Filter):
@@ -62,7 +63,7 @@ class NoFlaskwebgui(logging.Filter):
 
 logging.getLogger("werkzeug").addFilter(NoFlaskwebgui())
 
-app = Flask(__name__, static_folder=os.path.join(BUILD_DIR, "static"))
+app = Flask(__name__, static_folder=str(BUILD_DIR / "static"))
 app.config["JSON_AS_ASCII"] = False
 CORS(app, expose_headers=["Content-Disposition"])
 # MAX_BUFFER_SIZE = 50 * 1000 * 1000  # 50 MB
@@ -110,14 +111,16 @@ def process():
         hd_strategy=form["hdStrategy"],
         zits_wireframe=form["zitsWireframe"],
         hd_strategy_crop_margin=form["hdStrategyCropMargin"],
-        hd_strategy_crop_trigger_size=form["hdStrategyCropTrigerSize"],
+        hd_strategy_crop_trigger_size=form.get(
+            "hdStrategyCropTriggerSize", form.get("hdStrategyCropTrigerSize")
+        ),
         hd_strategy_resize_limit=form["hdStrategyResizeLimit"],
         prompt=form["prompt"],
-        use_croper=form["useCroper"],
-        croper_x=form["croperX"],
-        croper_y=form["croperY"],
-        croper_height=form["croperHeight"],
-        croper_width=form["croperWidth"],
+        use_cropper=form.get("useCropper", form.get("useCroper", False)),
+        cropper_x=form.get("cropperX", form.get("croperX")),
+        cropper_y=form.get("cropperY", form.get("croperY")),
+        cropper_height=form.get("cropperHeight", form.get("croperHeight")),
+        cropper_width=form.get("cropperWidth", form.get("croperWidth")),
         sd_mask_blur=form["sdMaskBlur"],
         sd_strength=form["sdStrength"],
         sd_steps=form["sdSteps"],
@@ -140,7 +143,8 @@ def process():
     res_np_img = model(image, mask, config)
     logger.info(f"process time: {(time.time() - start) * 1000}ms")
 
-    torch.cuda.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     if alpha_channel is not None:
         if alpha_channel.shape[:2] != res_np_img.shape[:2]:
@@ -188,7 +192,7 @@ def switch_model():
 
 @app.route("/")
 def index():
-    return send_file(os.path.join(BUILD_DIR, "index.html"))
+    return send_file(str(BUILD_DIR / "index.html"))
 
 
 @app.route("/inputimage")
@@ -196,12 +200,23 @@ def set_input_photo():
     if input_image_path:
         with open(input_image_path, "rb") as f:
             image_in_bytes = f.read()
-        return send_file(
-            input_image_path,
-            as_attachment=True,
-            attachment_filename=Path(input_image_path).name,
-            mimetype=f"image/{get_image_ext(image_in_bytes)}",
-        )
+        send_kwargs = {
+            "as_attachment": True,
+            "mimetype": f"image/{get_image_ext(image_in_bytes)}",
+        }
+        # Flask>=2.0 uses download_name; older versions use attachment_filename.
+        try:
+            return send_file(
+                input_image_path,
+                download_name=Path(input_image_path).name,
+                **send_kwargs,
+            )
+        except TypeError:
+            return send_file(
+                input_image_path,
+                attachment_filename=Path(input_image_path).name,
+                **send_kwargs,
+            )
     else:
         return "No Input Image"
 

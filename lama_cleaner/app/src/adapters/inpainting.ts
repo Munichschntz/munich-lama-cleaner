@@ -7,7 +7,7 @@ export default async function inpaint(
   imageFile: File,
   maskBase64: string,
   settings: Settings,
-  croperRect: Rect,
+  cropperRect: Rect,
   prompt?: string,
   sizeLimit?: string,
   seed?: number
@@ -25,8 +25,8 @@ export default async function inpaint(
   fd.append('hdStrategy', hdSettings.hdStrategy)
   fd.append('hdStrategyCropMargin', hdSettings.hdStrategyCropMargin.toString())
   fd.append(
-    'hdStrategyCropTrigerSize',
-    hdSettings.hdStrategyCropTrigerSize.toString()
+    'hdStrategyCropTriggerSize',
+    hdSettings.hdStrategyCropTriggerSize.toString()
   )
   fd.append(
     'hdStrategyResizeLimit',
@@ -34,11 +34,11 @@ export default async function inpaint(
   )
 
   fd.append('prompt', prompt === undefined ? '' : prompt)
-  fd.append('croperX', croperRect.x.toString())
-  fd.append('croperY', croperRect.y.toString())
-  fd.append('croperHeight', croperRect.height.toString())
-  fd.append('croperWidth', croperRect.width.toString())
-  fd.append('useCroper', settings.showCroper ? 'true' : 'false')
+  fd.append('cropperX', cropperRect.x.toString())
+  fd.append('cropperY', cropperRect.y.toString())
+  fd.append('cropperHeight', cropperRect.height.toString())
+  fd.append('cropperWidth', cropperRect.width.toString())
+  fd.append('useCropper', settings.showCropper ? 'true' : 'false')
   fd.append('sdMaskBlur', settings.sdMaskBlur.toString())
   fd.append('sdStrength', settings.sdStrength.toString())
   fd.append('sdSteps', settings.sdSteps.toString())

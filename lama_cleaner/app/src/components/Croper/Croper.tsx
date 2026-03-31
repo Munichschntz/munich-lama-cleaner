@@ -2,10 +2,10 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/outline'
 import React, { useEffect, useState } from 'react'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import {
-  croperHeight,
-  croperWidth,
-  croperX,
-  croperY,
+  cropperHeight,
+  cropperWidth,
+  cropperX,
+  cropperY,
   isInpaintingState,
 } from '../../store/Atoms'
 
@@ -35,10 +35,10 @@ interface Props {
 
 const Croper = (props: Props) => {
   const { minHeight, minWidth, maxHeight, maxWidth, scale } = props
-  const [x, setX] = useRecoilState(croperX)
-  const [y, setY] = useRecoilState(croperY)
-  const [height, setHeight] = useRecoilState(croperHeight)
-  const [width, setWidth] = useRecoilState(croperWidth)
+  const [x, setX] = useRecoilState(cropperX)
+  const [y, setY] = useRecoilState(cropperY)
+  const [height, setHeight] = useRecoilState(cropperHeight)
+  const [width, setWidth] = useRecoilState(cropperWidth)
   const isInpainting = useRecoilValue(isInpaintingState)
 
   const [isResizing, setIsResizing] = useState(false)

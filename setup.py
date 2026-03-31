@@ -13,8 +13,9 @@ def load_requirements():
     requires = []
     with open(requirements_file_name) as f:
         for line in f:
-            if line:
-                requires.append(line.strip())
+            line = line.strip()
+            if line and not line.startswith("#"):
+                requires.append(line)
     return requires
 
 
