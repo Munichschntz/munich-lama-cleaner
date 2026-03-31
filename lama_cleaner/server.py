@@ -128,6 +128,8 @@ def process():
         sd_sampler=form["sdSampler"],
         sd_seed=form["sdSeed"],
     )
+        config.cv2_radius = int(form.get("cv2Radius", 3))
+        config.cv2_flag = form.get("cv2Flag", "INPAINT_TELEA")
 
     if config.sd_seed == -1:
         config.sd_seed = random.randint(1, 9999999)

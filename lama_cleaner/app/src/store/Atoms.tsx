@@ -36,6 +36,14 @@ export const appState = atom<AppState>({
     disableShortCuts: false,
     isInpainting: false,
   },
+export const promptState = atom<string>({
+  key: 'promptState',
+  default: '',
+})
+
+/** @deprecated Use promptState instead */
+export const propmtState = promptState
+
 })
 
 export const propmtState = atom<string>({

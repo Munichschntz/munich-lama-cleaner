@@ -2,14 +2,14 @@ import React, { FormEvent, useRef, useState } from 'react'
 import { useClickAway } from 'react-use'
 import { useRecoilState } from 'recoil'
 import emitter, { EVENT_PROMPT } from '../../event'
-import { appState, propmtState } from '../../store/Atoms'
+import { appState, promptState } from '../../store/Atoms'
 import Button from '../shared/Button'
 import TextInput from '../shared/Input'
 
 // TODO: show progress in input
 const PromptInput = () => {
   const [app, setAppState] = useRecoilState(appState)
-  const [prompt, setPrompt] = useRecoilState(propmtState)
+    const [prompt, setPrompt] = useRecoilState(promptState)
   const ref = useRef(null)
 
   const handleOnInput = (evt: FormEvent<HTMLInputElement>) => {

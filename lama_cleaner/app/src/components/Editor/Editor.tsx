@@ -35,7 +35,7 @@ import {
   cropperState,
   isInpaintingState,
   isSDState,
-  propmtState,
+    promptState,
   runManuallyState,
   seedState,
   settingState,
@@ -87,7 +87,7 @@ function mouseXY(ev: SyntheticEvent) {
 
 export default function Editor(props: EditorProps) {
   const { file } = props
-  const promptVal = useRecoilValue(propmtState)
+  const promptVal = useRecoilValue(promptState)
   const settings = useRecoilValue(settingState)
   const [seedVal, setSeed] = useRecoilState(seedState)
   const cropperRect = useRecoilValue(cropperState)
@@ -454,16 +454,12 @@ export default function Editor(props: EditorProps) {
   const handleEscPressed = () => {
     if (isInpainting) {
       return
-    }
-    if (isDraging || isMultiStrokeKeyPressed) {
-      setIsDraging(false)
-      setCurLineGroup([])
-      drawOnCurrentRender([])
-    } else {
-      resetZoom()
-    }
-  }
-
+      useEffect(() => {
+        window.addEventListener('resize', resetZoom)
+        return () => {
+          window.removeEventListener('resize', resetZoom)
+        }
+      }, [resetZoom])
   useKey(
     'Escape',
     handleEscPressed,

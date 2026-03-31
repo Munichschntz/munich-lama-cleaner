@@ -73,7 +73,7 @@ const SidePanel = () => {
               width={INPUT_WIDTH}
               allowFloat
               value={`${setting.sdStrength}`}
-              desc="TODO"
+                desc="How strongly the model transforms the masked area (0–1). Lower values preserve more of the original image."
               onValue={value => {
                 const val = value.length === 0 ? 0 : parseFloat(value)
                 console.log(val)
@@ -88,7 +88,7 @@ const SidePanel = () => {
               width={INPUT_WIDTH}
               allowFloat
               value={`${setting.sdGuidanceScale}`}
-              desc="TODO"
+                desc="How closely the output follows the text prompt. Higher values give more prompt-aligned results but reduce variety."
               onValue={value => {
                 const val = value.length === 0 ? 0 : parseFloat(value)
                 setSettingState(old => {
@@ -101,7 +101,7 @@ const SidePanel = () => {
               title="Mask Blur"
               width={INPUT_WIDTH}
               value={`${setting.sdMaskBlur}`}
-              desc="TODO"
+                desc="Gaussian blur radius applied to mask edges before inpainting. Creates smoother transitions between inpainted and original areas."
               onValue={value => {
                 const val = value.length === 0 ? 0 : parseInt(value, 10)
                 setSettingState(old => {
