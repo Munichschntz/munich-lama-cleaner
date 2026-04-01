@@ -88,6 +88,7 @@ Available arguments:
 
 | Name              | Description                                                                                                                   | Default  |
 |-------------------|-------------------------------------------------------------------------------------------------------------------------------| -------- |
+| --host            | Host for backend flask web server                                                                                             | 127.0.0.1 |
 | --model           | lama/ldm/zits/mat/fcf/sd1.4 See details in [Inpaint Model](#inpainting-model)                                                 | lama     |
 | --preload-models  | Pre-download model weights before launch. Comma-separated model names or `all`                                                 |          |
 | --preload-only    | Download selected model weights and exit without starting server. If no `--preload-models`, uses `--model`                    |          |

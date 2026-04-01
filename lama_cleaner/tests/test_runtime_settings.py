@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from lama_cleaner.runtime_settings import configure_cache_settings
 
@@ -68,3 +69,17 @@ def test_persisted_config_used_when_no_cli_or_env(monkeypatch, tmp_path):
     assert settings.enabled is True
     assert settings.source == "config"
     assert settings.root_dir == str(cache_root.resolve())
+
+
+def test_malformed_persisted_config_falls_back_to_default(monkeypatch, tmp_path):
+    _reset_cache_env(monkeypatch)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "cfg"))
+
+    config_path = Path(tmp_path / "cfg" / "lama-cleaner" / "config.json")
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text("{ malformed-json", encoding="utf-8")
+
+    settings = configure_cache_settings(None)
+    assert settings.enabled is False
+    assert settings.source == "default"
+    assert settings.root_dir is None

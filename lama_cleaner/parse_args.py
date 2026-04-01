@@ -17,6 +17,8 @@ def _parse_preload_models(raw: str):
     normalized = []
     seen = set()
     if "all" in names:
+        if len(names) != 1:
+            raise ValueError("all")
         names = MODEL_CHOICES
 
     for name in names:
@@ -102,7 +104,7 @@ def parse_args():
 
     if args.input is not None:
         if not os.path.exists(args.input):
-            parser.error(f"invalid --input: {args.input} not exists")
+            parser.error(f"invalid --input: {args.input} does not exist")
         if imghdr.what(args.input) is None:
             parser.error(f"invalid --input: {args.input} is not a valid image file")
 
