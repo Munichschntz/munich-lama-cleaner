@@ -33,7 +33,7 @@ If the test fails, fix NVIDIA Container Toolkit setup first.
 
 Checks:
 
-- Confirm `CACHE_DIR` is set to `/app/models`.
+- Confirm `LAMA_CLEANER_CACHE_DIR` is set to `/app/models`.
 - Confirm a persistent mount is attached to `/app/models`.
 - Confirm folder permissions allow write access.
 
@@ -41,7 +41,7 @@ Example run:
 
 ```bash
 docker run -p 8080:8080 \
-  -e CACHE_DIR=/app/models \
+  -e LAMA_CLEANER_CACHE_DIR=/app/models \
   -v $(pwd)/models:/app/models \
   -v $(pwd):/app \
   --rm lamacleaner \
@@ -63,7 +63,7 @@ Safer token handling (avoid putting token in shell history):
 export HF_ACCESS_TOKEN=hf_xxx
 
 docker run -p 8080:8080 \
-  -e CACHE_DIR=/app/models \
+  -e LAMA_CLEANER_CACHE_DIR=/app/models \
   -v $(pwd)/models:/app/models \
   -v $(pwd):/app \
   --rm lamacleaner \

@@ -51,7 +51,7 @@ If this command shows your GPU, Docker GPU passthrough is working.
 
 ```bash
 docker run --gpus all -p 8080:8080 \
-  -e CACHE_DIR=/app/models \
+  -e LAMA_CLEANER_CACHE_DIR=/app/models \
   -v $(pwd)/models:/app/models \
   -v $(pwd):/app \
   --rm lamacleaner \
@@ -64,7 +64,7 @@ You can pre-download model files before regular usage:
 
 ```bash
 docker run --gpus all \
-  -e CACHE_DIR=/app/models \
+  -e LAMA_CLEANER_CACHE_DIR=/app/models \
   -v $(pwd)/models:/app/models \
   -v $(pwd):/app \
   --rm lamacleaner \

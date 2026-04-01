@@ -16,7 +16,7 @@ Selection precedence at startup:
 That means this run option controls where model files are stored:
 
 ```bash
--e CACHE_DIR=/app/models
+-e LAMA_CLEANER_CACHE_DIR=/app/models
 ```
 
 Recommended explicit startup argument:

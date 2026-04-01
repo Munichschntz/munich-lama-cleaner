@@ -15,7 +15,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      CACHE_DIR: /app/models
+      LAMA_CLEANER_CACHE_DIR: /app/models
     volumes:
       - ./models:/app/models
       - ./:/app
@@ -31,7 +31,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      CACHE_DIR: /app/models
+      LAMA_CLEANER_CACHE_DIR: /app/models
       HF_ACCESS_TOKEN: ${HF_ACCESS_TOKEN:-}
     volumes:
       - ./models:/app/models
@@ -72,4 +72,5 @@ docker compose down
 
 - Keep the `./models:/app/models` mount to persist model downloads.
 - Keep `--host=0.0.0.0` so the UI is reachable on the host.
+- `LAMA_CLEANER_CACHE_DIR` is the preferred cache env var (`CACHE_DIR` is still supported as legacy).
 - Open http://localhost:8080 after startup.

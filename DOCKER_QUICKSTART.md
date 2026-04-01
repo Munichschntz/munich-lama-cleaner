@@ -18,7 +18,7 @@ docker build -f Dockerfile -t lamacleaner .
 
 ```bash
 docker run -p 8080:8080 \
-  -e CACHE_DIR=/app/models \
+  -e LAMA_CLEANER_CACHE_DIR=/app/models \
   -v $(pwd)/models:/app/models \
   -v $(pwd):/app \
   --rm lamacleaner \
@@ -29,7 +29,7 @@ docker run -p 8080:8080 \
 
 ```bash
 docker run --gpus all -p 8080:8080 \
-  -e CACHE_DIR=/app/models \
+  -e LAMA_CLEANER_CACHE_DIR=/app/models \
   -v $(pwd)/models:/app/models \
   -v $(pwd):/app \
   --rm lamacleaner \
@@ -45,6 +45,7 @@ Open http://localhost:8080
 - The first start can take longer because model files are downloaded.
 - Keep the models volume mount so downloads are reused between runs.
 - In Docker, `--host=0.0.0.0` is required so the app is reachable outside the container.
+- `LAMA_CLEANER_CACHE_DIR` is the preferred cache env var (`CACHE_DIR` is still supported as legacy).
 
 ## Next
 
