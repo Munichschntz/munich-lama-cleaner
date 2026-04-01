@@ -44,6 +44,11 @@ export default async function inpaint(
   fd.append('mask', mask)
 
   const hdSettings = settings.hdSettings[settings.model]
+  if (!hdSettings) {
+    throw new Error(
+      `HD settings not found for model "${settings.model}". Please reload the page or re-select your model in Settings.`
+    )
+  }
   fd.append('ldmSteps', settings.ldmSteps.toString())
   fd.append('ldmSampler', settings.ldmSampler.toString())
   fd.append('zitsWireframe', settings.zitsWireframe.toString())

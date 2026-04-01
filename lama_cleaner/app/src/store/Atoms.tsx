@@ -331,6 +331,12 @@ const localStorageEffect =
         _.cloneDeep(settingStateDefault),
         storageSettings
       )
+      // Guard: if the restored model key isn't present in hdSettings (e.g. stale
+      // or outdated localStorage from a previous app version), reset to the default
+      // model so that hdSettings lookup never returns undefined.
+      if (!(restored.model in restored.hdSettings)) {
+        restored.model = settingStateDefault.model
+      }
       setSelf(restored)
     }
 

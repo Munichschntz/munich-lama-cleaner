@@ -106,9 +106,11 @@ const Workspace = ({ file }: WorkspaceProps) => {
         return res.json()
       })
       .then(({ model }) => {
-        setSettingState(old => {
-          return { ...old, model: model as AIModel }
-        })
+        if (model && Object.values(AIModel).includes(model as AIModel)) {
+          setSettingState(old => {
+            return { ...old, model: model as AIModel }
+          })
+        }
       })
       .catch((error: unknown) => {
         setToastState({
