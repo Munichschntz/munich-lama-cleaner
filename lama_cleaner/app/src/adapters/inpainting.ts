@@ -1,7 +1,8 @@
 import { Rect, Settings } from '../store/Atoms'
 import { dataURItoBlob } from '../utils'
 
-export const API_ENDPOINT = `${process.env.REACT_APP_INPAINTING_URL}`
+export const API_ENDPOINT =
+  process.env.REACT_APP_INPAINTING_URL || 'http://localhost:8080'
 
 export interface ServerStatus {
   phase: string
