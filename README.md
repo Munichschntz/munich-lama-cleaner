@@ -48,7 +48,12 @@
 ## Quick Start
 
 ```bash
+# Run-only usage from PyPI
 pip install lama-cleaner
+
+# OR: local development from this repository (recommended when modifying code)
+pip uninstall -y lama-cleaner
+pip install -e .
 
 # Model will be downloaded automatically
 lama-cleaner --model=lama --device=cpu --port=8080

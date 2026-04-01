@@ -42,7 +42,14 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
 ## 3. Install lama-cleaner
 
-For run-only usage, install from PyPI:
+If you are modifying this repository, install the local package in editable mode:
+
+```powershell
+pip uninstall -y lama-cleaner
+pip install -e .
+```
+
+For run-only usage, install from PyPI instead:
 
 ```powershell
 pip install lama-cleaner
@@ -163,7 +170,8 @@ lama-cleaner --model=sd1.4 --sd-run-local --device=cuda --port=8080 --host=127.0
 
 - `lama-cleaner` not found:
   - Reactivate venv: `.\.venv\Scripts\Activate.ps1`
-  - Reinstall: `pip install lama-cleaner`
+  - For local repo development reinstall: `pip install -e .`
+  - For PyPI install reinstall: `pip install lama-cleaner`
 - CUDA unavailable:
   - Check `nvidia-smi`
   - Run CPU mode to confirm baseline
