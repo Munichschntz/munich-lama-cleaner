@@ -16,7 +16,7 @@ import torch
 import numpy as np
 from loguru import logger
 
-from lama_cleaner.model_manager import ModelManager, models
+from lama_cleaner.model_manager import ModelManager, get_model_class
 from lama_cleaner.schema import Config, QualityPreset
 
 try:
@@ -441,7 +441,7 @@ def main(args):
             if preload_name in PRELOAD_DOWNLOAD_CHECK_UNSUPPORTED:
                 preload_status_before[preload_name] = None
                 continue
-            preload_status_before[preload_name] = models[preload_name].is_downloaded()
+            preload_status_before[preload_name] = get_model_class(preload_name).is_downloaded()
 
         preload_manager = ModelManager(
             name=preload_models[0],
@@ -470,7 +470,7 @@ def main(args):
                 )
                 continue
 
-            status_after = models[preload_name].is_downloaded()
+            status_after = get_model_class(preload_name).is_downloaded()
             if status_before:
                 preload_status_counts["already_cached"] += 1
                 preload_status_lines.append(f"{preload_name}=already_cached")

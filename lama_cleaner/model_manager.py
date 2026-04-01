@@ -1,13 +1,40 @@
-from lama_cleaner.model.fcf import FcF
-from lama_cleaner.model.lama import LaMa
-from lama_cleaner.model.ldm import LDM
-from lama_cleaner.model.mat import MAT
-from lama_cleaner.model.sd import SD14
-from lama_cleaner.model.zits import ZITS
-from lama_cleaner.model.opencv2 import OpenCV2
+from importlib import import_module
+
 from lama_cleaner.schema import Config
 
-models = {"lama": LaMa, "ldm": LDM, "zits": ZITS, "mat": MAT, "fcf": FcF, "sd1.4": SD14, "cv2": OpenCV2}
+MODEL_IMPORTS = {
+    "lama": ("lama_cleaner.model.lama", "LaMa"),
+    "ldm": ("lama_cleaner.model.ldm", "LDM"),
+    "zits": ("lama_cleaner.model.zits", "ZITS"),
+    "mat": ("lama_cleaner.model.mat", "MAT"),
+    "fcf": ("lama_cleaner.model.fcf", "FcF"),
+    "sd1.4": ("lama_cleaner.model.sd", "SD14"),
+    "cv2": ("lama_cleaner.model.opencv2", "OpenCV2"),
+}
+
+# Exported to preserve compatibility with existing imports.
+models = MODEL_IMPORTS
+_MODEL_CLASS_CACHE = {}
+
+
+def get_model_class(name: str):
+    if name not in MODEL_IMPORTS:
+        raise NotImplementedError(f"Not supported model: {name}")
+
+    if name in _MODEL_CLASS_CACHE:
+        return _MODEL_CLASS_CACHE[name]
+
+    module_name, class_name = MODEL_IMPORTS[name]
+    try:
+        module = import_module(module_name)
+        model_class = getattr(module, class_name)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to import model '{name}'. Optional dependencies may be missing or incompatible: {e}"
+        ) from e
+
+    _MODEL_CLASS_CACHE[name] = model_class
+    return model_class
 
 MODEL_CAPABILITIES = {
     "lama": {
@@ -81,13 +108,14 @@ class ModelManager:
             raise NotImplementedError(f"Not supported model: {name}")
         if name in self._cache:
             return self._cache[name]
-        model = models[name](device, **kwargs)
+        model_class = get_model_class(name)
+        model = model_class(device, **kwargs)
         self._cache[name] = model
         return model
 
     def is_downloaded(self, name: str) -> bool:
         if name in models:
-            return models[name].is_downloaded()
+            return get_model_class(name).is_downloaded()
         else:
             raise NotImplementedError(f"Not supported model: {name}")
 
