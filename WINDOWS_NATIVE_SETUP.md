@@ -49,6 +49,13 @@ pip uninstall -y lama-cleaner
 pip install -e .
 ```
 
+If you want a full reset + rebuild + reinstall flow, use the repo wrappers:
+
+- CMD: `clean-rebuild.cmd`
+- PowerShell: `./clean-rebuild.ps1`
+
+These wrappers create/use `.venv311` and run a full clean rebuild with dependency resolution.
+
 For run-only usage, install from PyPI instead:
 
 ```powershell
@@ -136,6 +143,28 @@ Use a different model or port:
 .\run-gpu.ps1 -Model mat -Port 8081
 ```
 
+## 8.1 One-Command Clean Rebuild (Recommended for local code changes)
+
+PowerShell:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass -Force
+.\clean-rebuild.ps1
+```
+
+CMD:
+
+```cmd
+clean-rebuild.cmd
+```
+
+This does all of the following in one run:
+
+- create `.venv311` if missing
+- clean untracked build/cache artifacts
+- build a fresh wheel from current source
+- reinstall `lama-cleaner` into `.venv311`
+
 ## 9. Preload Models (Optional)
 
 Preload selected models:
@@ -177,5 +206,8 @@ lama-cleaner --model=sd1.4 --sd-run-local --device=cuda --port=8080 --host=127.0
   - Run CPU mode to confirm baseline
 - Slow first launch:
   - Normal while model files download
+- `pip install` fails on Python 3.12 with `scikit-image==0.19.3` build errors:
+  - Use Python 3.10/3.11 for full dependency installs
+  - Run `clean-rebuild.cmd` or `./clean-rebuild.ps1` to rebuild in `.venv311`
 
 For containerized setup instead, see [DOCKER_QUICKSTART.md](DOCKER_QUICKSTART.md).

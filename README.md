@@ -76,6 +76,14 @@ Windows 11 without Docker: [Windows Native Setup](WINDOWS_NATIVE_SETUP.md)
 
 Quick launch scripts (PowerShell): `run-gpu.ps1` and `run-cpu.ps1`
 
+Local clean-rebuild wrappers:
+
+- Windows CMD: `clean-rebuild.cmd`
+- Windows PowerShell: `./clean-rebuild.ps1`
+- Cross-platform Python script: `python scripts/clean_rebuild.py --repo . --with-deps`
+
+For full dependency resolution, Python 3.10/3.11 is recommended.
+
 Available arguments:
 
 | Name              | Description                                                                                                                   | Default  |
@@ -216,6 +224,10 @@ you can download it manually and place files under your configured cache root.
 - Disable ZITS wireframe for speed.
 - Reduce image resolution or run on GPU.
 
+### Dependency install errors on Python 3.12
+
+If `pip install` fails while building `scikit-image==0.19.3` (for example with `pkgutil.ImpImporter` errors), create a Python 3.10/3.11 environment and reinstall there.
+
 ## Benchmarking
 
 The benchmark utility is in [lama_cleaner/benchmark.py](lama_cleaner/benchmark.py).
@@ -281,6 +293,21 @@ For local development with `pip install -e .`:
 
 - Re-run `pip install -e .` after dependency or packaging metadata changes (for example `requirements*.txt` or `setup.py`).
 - Restart the running `lama-cleaner` process after Python or frontend build changes.
+
+For a complete local reset (clean artifacts, rebuild wheel, reinstall package), use:
+
+```bash
+# Full reinstall with dependency resolution
+python scripts/clean_rebuild.py --repo . --with-deps
+
+# If dependencies are already pinned/installed in your environment
+python scripts/clean_rebuild.py --repo . --no-deps
+```
+
+Windows one-command wrappers:
+
+- `clean-rebuild.cmd`
+- `clean-rebuild.ps1`
 
 ### Publish
 
