@@ -81,6 +81,11 @@ def parse_args():
     parser.add_argument(
         "--input", type=str, help="Path to image you want to load by default"
     )
+    parser.add_argument(
+        "--cache-dir",
+        default=None,
+        help="Root directory for model caches (torch + huggingface). Persisted when set.",
+    )
     parser.add_argument("--debug", action="store_true")
 
     args = parser.parse_args()

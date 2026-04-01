@@ -60,6 +60,14 @@ $env:TORCH_HOME = 'C:\lama-cleaner-models'
 
 This avoids re-downloading models every run.
 
+You can also let lama-cleaner persist this automatically by launching once with:
+
+```powershell
+lama-cleaner --cache-dir "C:\lama-cleaner-models" --model=lama --device=cuda --port=8080 --host=127.0.0.1
+```
+
+The path is saved in a user config file and reused on next launches.
+
 ## 5. Verify CUDA from Python
 
 ```powershell
@@ -101,6 +109,12 @@ Start with GPU:
 
 ```powershell
 .\run-gpu.ps1
+```
+
+Start with GPU and explicit cache path:
+
+```powershell
+.\run-gpu.ps1 -CacheDir "D:\lama-cache"
 ```
 
 Start with CPU:

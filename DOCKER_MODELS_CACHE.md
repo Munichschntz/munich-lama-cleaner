@@ -4,12 +4,25 @@ This guide explains how model files are downloaded and persisted in Docker.
 
 ## How Cache Works
 
-When `CACHE_DIR` is set, lama-cleaner maps it internally to `TORCH_HOME`.
+When cache root is selected, lama-cleaner configures both PyTorch and Hugging Face caches under that root.
+
+Selection precedence at startup:
+
+1. `--cache-dir`
+2. `LAMA_CLEANER_CACHE_DIR`
+3. `CACHE_DIR` (legacy)
+4. persisted config file
 
 That means this run option controls where model files are stored:
 
 ```bash
 -e CACHE_DIR=/app/models
+```
+
+Recommended explicit startup argument:
+
+```bash
+python3 main.py --cache-dir /app/models --model lama --device=cpu --port=8080 --host=0.0.0.0
 ```
 
 ## Persist Models Between Runs

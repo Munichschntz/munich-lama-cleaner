@@ -59,6 +59,9 @@ lama-cleaner --preload-models lama,mat --model lama
 
 # Optional: download model weights and exit (no server start)
 lama-cleaner --preload-models all --preload-only
+
+# Optional: choose and persist model cache root directory
+lama-cleaner --cache-dir "D:/lama-cleaner-cache"
 ```
 
 Windows 11 without Docker: [Windows Native Setup](WINDOWS_NATIVE_SETUP.md)
@@ -77,6 +80,7 @@ Available arguments:
 | --sd-disable-nsfw | Disable stable-diffusion NSFW checker.                                                                                        |          |
 | --sd-cpu-textencoder | Always run stable-diffusion TextEncoder model on CPU.                                                                         |          |
 | --device          | cuda or cpu                                                                                                                   | cuda     |
+| --cache-dir       | Root directory for model caches (torch + huggingface). Persisted when set.                                                   |          |
 | --port            | Port for backend flask web server                                                                                             | 8080     |
 | --gui             | Launch lama-cleaner as a desktop application                                                                                  |          |
 | --gui-size        | Set the window size for the application                                                                                       | 1600 1000 |

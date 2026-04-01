@@ -15,8 +15,7 @@ try:
 except ImportError:
     nvidia_smi = None
 
-from lama_cleaner.model_manager import ModelManager
-from lama_cleaner.schema import Config, HDStrategy, LDMSampler, SDSampler, QualityPreset
+from lama_cleaner.runtime_settings import configure_cache_settings
 
 NUM_THREADS = str(max(1, multiprocessing.cpu_count() // 2))
 
@@ -25,11 +24,11 @@ os.environ["OPENBLAS_NUM_THREADS"] = NUM_THREADS
 os.environ["MKL_NUM_THREADS"] = NUM_THREADS
 os.environ["VECLIB_MAXIMUM_THREADS"] = NUM_THREADS
 os.environ["NUMEXPR_NUM_THREADS"] = NUM_THREADS
-if os.environ.get("CACHE_DIR"):
-    os.environ["TORCH_HOME"] = os.environ["CACHE_DIR"]
 
 
-def build_config() -> Config:
+def build_config():
+    from lama_cleaner.schema import Config, HDStrategy, LDMSampler, SDSampler, QualityPreset
+
     return Config(
         ldm_steps=25,
         ldm_sampler=LDMSampler.plms,
@@ -55,14 +54,14 @@ def build_config() -> Config:
     )
 
 
-def run_model(manager: ModelManager, size, config: Config):
+def run_model(manager, size, config):
     image = np.random.randint(0, 256, (size[0], size[1], 3), dtype=np.uint8)
     mask = np.random.randint(0, 255, size, dtype=np.uint8)
     manager(image, mask, config)
 
 
 def benchmark(
-    manager: ModelManager,
+    manager,
     times: int,
     empty_cache: bool,
     use_cuda_metrics: bool,
@@ -125,6 +124,7 @@ def get_args_parser():
     parser.add_argument("--device", default="cuda", type=str)
     parser.add_argument("--times", default=10, type=int)
     parser.add_argument("--empty-cache", action="store_true")
+    parser.add_argument("--cache-dir", default=None, type=str)
     parser.add_argument("--hf_access_token", default=None, type=str)
     parser.add_argument("--sd-run-local", action="store_true")
     parser.add_argument("--sd-disable-nsfw", action="store_true")
@@ -134,6 +134,10 @@ def get_args_parser():
 
 if __name__ == "__main__":
     args = get_args_parser()
+    configure_cache_settings(args.cache_dir, persist_cli_choice=False)
+
+    from lama_cleaner.model_manager import ModelManager
+
     device = torch.device(args.device)
 
     manager = ModelManager(

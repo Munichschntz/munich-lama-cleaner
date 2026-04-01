@@ -50,8 +50,6 @@ os.environ["OPENBLAS_NUM_THREADS"] = NUM_THREADS
 os.environ["MKL_NUM_THREADS"] = NUM_THREADS
 os.environ["VECLIB_MAXIMUM_THREADS"] = NUM_THREADS
 os.environ["NUMEXPR_NUM_THREADS"] = NUM_THREADS
-if os.environ.get("CACHE_DIR"):
-    os.environ["TORCH_HOME"] = os.environ["CACHE_DIR"]
 
 DEFAULT_BUILD_DIR = Path(__file__).resolve().parent / "app" / "build"
 BUILD_DIR = Path(os.environ.get("LAMA_CLEANER_BUILD_DIR", str(DEFAULT_BUILD_DIR)))
@@ -76,6 +74,7 @@ CORS(app, expose_headers=["Content-Disposition"])
 model: ModelManager = None
 device = None
 input_image_path: str = None
+cache_settings = None
 status_lock = threading.Lock()
 server_status = {
     "phase": "idle",
@@ -338,7 +337,13 @@ def model_capability(name):
 def current_status():
     status = status_snapshot()
     status["model"] = model.name if model else None
+    status["cache_settings"] = cache_settings or {}
     return jsonify(status), 200
+
+
+@app.route("/cache_settings")
+def current_cache_settings():
+    return jsonify(cache_settings or {}), 200
 
 
 @app.route("/model", methods=["POST"])
@@ -406,6 +411,13 @@ def main(args):
     global model
     global device
     global input_image_path
+    global cache_settings
+
+    cache_settings_obj = getattr(args, "cache_settings", None)
+    cache_settings = (
+        cache_settings_obj.to_dict() if cache_settings_obj is not None else {"enabled": False, "source": "default"}
+    )
+    logger.info(f"Cache settings: {cache_settings}")
 
     device = torch.device(args.device)
     input_image_path = args.input
