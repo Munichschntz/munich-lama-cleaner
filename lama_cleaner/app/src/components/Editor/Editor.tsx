@@ -170,6 +170,10 @@ export default function Editor(props: EditorProps) {
   const [historySnapshots, setHistorySnapshots] = useState<HistorySnapshot[]>([])
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string>('original')
 
+  const manualRunHint = isSD
+    ? 'Manual mode: draw mask, then click Run Inpainting or Dream.'
+    : 'Manual mode: draw mask, then click Run Inpainting.'
+
   // redo 相关
   const [redoRenders, setRedoRenders] = useState<HTMLImageElement[]>([])
   const [redoCurLines, setRedoCurLines] = useState<Line[]>([])
@@ -1306,6 +1310,11 @@ export default function Editor(props: EditorProps) {
           onClick={() => setShowRefBrush(false)}
         />
         <div className="editor-toolkit-btns">
+          {runManually && (
+            <span className="manual-run-hint" title={manualRunHint}>
+              {manualRunHint}
+            </span>
+          )}
           <Button toolTip="Save Session" tooltipPosition="top" onClick={saveSession}>
             Save Session
           </Button>
@@ -1414,7 +1423,7 @@ export default function Editor(props: EditorProps) {
             onClick={download}
           />
 
-          {settings.runInpaintingManually && (
+          {runManually && (
             <Button
               toolTip="Run Inpainting"
               tooltipPosition="top"

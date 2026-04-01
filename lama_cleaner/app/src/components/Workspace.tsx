@@ -48,13 +48,17 @@ const Workspace = ({ file }: WorkspaceProps) => {
         throw new Error(await parseResponseError(downloadedRes))
       }
       const downloadedJson = await downloadedRes.json()
-      const downloaded = Boolean(downloadedJson.downloaded)
+      const hasKnownDownloadState = typeof downloadedJson.downloaded === 'boolean'
+      const downloaded = hasKnownDownloadState && downloadedJson.downloaded
 
       const { model } = settings
 
       let loadingMessage = `Switching to ${model} model`
       let loadingDuration = 3000
-      if (!downloaded) {
+      if (!hasKnownDownloadState) {
+        loadingMessage = `Preparing ${model} model, this may take a while`
+        loadingDuration = 20000
+      } else if (!downloaded) {
         loadingMessage = `Downloading ${model} model, this may take a while`
         loadingDuration = 9999999999
       }
@@ -95,13 +99,29 @@ const Workspace = ({ file }: WorkspaceProps) => {
 
   useEffect(() => {
     currentModel()
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) {
+          throw new Error(await parseResponseError(res))
+        }
+        return res.json()
+      })
       .then(({ model }) => {
         setSettingState(old => {
           return { ...old, model: model as AIModel }
         })
       })
-  }, [setSettingState])
+      .catch((error: unknown) => {
+        setToastState({
+          open: true,
+          desc:
+            error instanceof Error
+              ? `Unable to read current model: ${error.message}`
+              : 'Unable to read current model',
+          state: 'error',
+          duration: 3000,
+        })
+      })
+  }, [setSettingState, setToastState])
 
   return (
     <>

@@ -102,6 +102,22 @@
   column-gap: 1rem;
   align-items: center;
 
+  .manual-run-hint {
+    font-size: 0.78rem;
+    max-width: 16rem;
+    opacity: 0.85;
+  }
+
+  @include mobile {
+    grid-auto-flow: row;
+    justify-items: center;
+
+    .manual-run-hint {
+      max-width: 100%;
+      text-align: center;
+    }
+  }
+
   select {
     height: 2.6rem;
     border-radius: 0.6rem;

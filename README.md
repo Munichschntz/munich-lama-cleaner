@@ -267,6 +267,15 @@ great online services [here](https://cleanup.pictures/).
 - Start development server: `yarn start`
 - Build: `yarn build`
 
+If you changed frontend source files under `lama_cleaner/app/src`, rebuild before running backend-only mode so Flask serves updated static assets from `lama_cleaner/app/build`.
+
+### Local editable install workflow
+
+For local development with `pip install -e .`:
+
+- Re-run `pip install -e .` after dependency or packaging metadata changes (for example `requirements*.txt` or `setup.py`).
+- Restart the running `lama-cleaner` process after Python or frontend build changes.
+
 ### Publish
 
 - Linux/macOS: `bash publish.sh`

@@ -14,7 +14,7 @@ const SettingIcon = () => {
     <div>
       <Button
         onClick={onClick}
-        toolTip="Settings"
+        toolTip="Settings (S) - change model/options"
         tooltipPosition="bottom"
         style={{ border: 0 }}
         icon={
