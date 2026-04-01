@@ -61,6 +61,8 @@ lama-cleaner --preload-models lama,mat --model lama
 lama-cleaner --preload-models all --preload-only
 ```
 
+Windows 11 without Docker: [Windows Native Setup](WINDOWS_NATIVE_SETUP.md)
+
 Available arguments:
 
 | Name              | Description                                                                                                                   | Default  |
