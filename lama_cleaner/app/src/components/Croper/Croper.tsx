@@ -59,10 +59,6 @@ const Croper = (props: Props) => {
     ord: 'top',
   })
 
-  const onDragFocus = () => {
-    console.log('focus')
-  }
-
   const checkTopBottomLimit = (newY: number, newHeight: number) => {
     if (newY > 0 && newHeight > minHeight && newY + newHeight <= maxHeight) {
       return true
@@ -176,7 +172,7 @@ const Croper = (props: Props) => {
     }
   }
 
-  const onPointerDone = (e: PointerEvent) => {
+  const onPointerDone = () => {
     if (isResizing) {
       setIsResizing(false)
     }
@@ -225,11 +221,7 @@ const Croper = (props: Props) => {
 
   const createCropSelection = () => {
     return (
-      <div
-        className="drag-elements"
-        onFocus={onDragFocus}
-        onPointerDown={onCropPointerDown}
-      >
+      <div className="drag-elements" onPointerDown={onCropPointerDown}>
         <div
           className="drag-bar ord-top"
           data-ord="top"

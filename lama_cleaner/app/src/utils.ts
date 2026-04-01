@@ -239,6 +239,6 @@ export async function copyCanvasImage(canvas: HTMLCanvasElement) {
   try {
     await setToClipboard(blob)
   } catch {
-    console.log('Copy image failed!')
+    // Ignore clipboard errors to avoid interrupting the main editing flow.
   }
 }

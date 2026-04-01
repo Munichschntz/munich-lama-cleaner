@@ -76,7 +76,6 @@ const SidePanel = () => {
                 desc="How strongly the model transforms the masked area (0–1). Lower values preserve more of the original image."
               onValue={value => {
                 const val = value.length === 0 ? 0 : parseFloat(value)
-                console.log(val)
                 setSettingState(old => {
                   return { ...old, sdStrength: val }
                 })

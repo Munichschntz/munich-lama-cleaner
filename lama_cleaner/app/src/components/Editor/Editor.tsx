@@ -134,7 +134,7 @@ export default function Editor(props: EditorProps) {
   const [cropperRect, setCropperRect] = useRecoilState(cropperState)
   const [toastVal, setToastState] = useRecoilState(toastState)
   const [isInpainting, setIsInpainting] = useRecoilState(isInpaintingState)
-  const runMannually = useRecoilValue(runManuallyState)
+  const runManually = useRecoilValue(runManuallyState)
   const isSD = useRecoilValue(isSDState)
 
   const [brushSize, setBrushSize] = useState(40)
@@ -163,7 +163,7 @@ export default function Editor(props: EditorProps) {
   // Indicates that the image has been loaded and is centered on first load
   const [initialCentered, setInitialCentered] = useState(false)
 
-  const [isDraging, setIsDraging] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const [isMultiStrokeKeyPressed, setIsMultiStrokeKeyPressed] = useState(false)
 
   const [sliderPos, setSliderPos] = useState<number>(0)
@@ -232,7 +232,6 @@ export default function Editor(props: EditorProps) {
       // useLastLineGroup 的影响
       // 1. 使用上一次的 mask
       // 2. 结果替换当前 render
-      console.log('runInpainting')
 
       let maskLineGroup = []
       if (useLastLineGroup === true) {
@@ -252,7 +251,7 @@ export default function Editor(props: EditorProps) {
       const newLineGroups = [...lineGroups, maskLineGroup]
 
       setCurLineGroup([])
-      setIsDraging(false)
+      setIsDragging(false)
       setIsInpainting(true)
       if (settings.graduallyInpainting) {
         drawLinesOnMask([maskLineGroup])
@@ -300,8 +299,6 @@ export default function Editor(props: EditorProps) {
           throw new Error('empty response')
         }
         const { blob, seed } = res
-        console.log(seed)
-        console.log(settings.sdSeedFixed)
         if (seed && !settings.sdSeedFixed) {
           setSeed(parseInt(seed, 10))
         }
@@ -415,7 +412,7 @@ export default function Editor(props: EditorProps) {
 
     setIsMultiStrokeKeyPressed(false)
 
-    if (!runMannually) {
+    if (!runManually) {
       runInpainting()
     }
   }
@@ -529,7 +526,7 @@ export default function Editor(props: EditorProps) {
       setLineGroups(lineGroups.slice(0, toIndex + 1))
       setCurLineGroup([])
       setLastLineGroup([])
-      setIsDraging(false)
+      setIsDragging(false)
       draw(restoredRenders[restoredRenders.length - 1], [])
       setToastState({
         open: true,
@@ -703,9 +700,9 @@ export default function Editor(props: EditorProps) {
       return
     }
 
-    if (isDraging) {
-      setIsDraging(false)
-      if (!runMannually) {
+    if (isDragging) {
+      setIsDragging(false)
+      if (!runManually) {
         setCurLineGroup([])
         drawOnCurrentRender([])
       }
@@ -727,7 +724,7 @@ export default function Editor(props: EditorProps) {
       event: 'keydown',
     },
     [
-      isDraging,
+      isDragging,
       isInpainting,
       isMultiStrokeKeyPressed,
       resetZoom,
@@ -744,7 +741,7 @@ export default function Editor(props: EditorProps) {
     if (isPanning) {
       return
     }
-    if (!isDraging) {
+    if (!isDragging) {
       return
     }
     if (curLineGroup.length === 0) {
@@ -774,23 +771,23 @@ export default function Editor(props: EditorProps) {
     if (isInpainting) {
       return
     }
-    if (!isDraging) {
+    if (!isDragging) {
       return
     }
 
     if (isMultiStrokeKeyPressed) {
-      setIsDraging(false)
+      setIsDragging(false)
       return
     }
 
-    if (runMannually) {
-      setIsDraging(false)
+    if (runManually) {
+      setIsDragging(false)
     } else {
       runInpainting()
     }
   }
 
-  const isOutsideCroper = (clickPnt: { x: number; y: number }) => {
+  const isOutsideCropper = (clickPnt: { x: number; y: number }) => {
     if (clickPnt.x < cropperRect.x) {
       return true
     }
@@ -830,14 +827,14 @@ export default function Editor(props: EditorProps) {
       return
     }
 
-    if (isSD && settings.showCropper && isOutsideCroper(mouseXY(ev))) {
+    if (isSD && settings.showCropper && isOutsideCropper(mouseXY(ev))) {
       return
     }
 
-    setIsDraging(true)
+    setIsDragging(true)
 
     let lineGroup: LineGroup = []
-    if (isMultiStrokeKeyPressed || runMannually) {
+    if (isMultiStrokeKeyPressed || runManually) {
       lineGroup = [...curLineGroup]
     }
     lineGroup.push({ size: brushSize, pts: [mouseXY(ev)] })
@@ -873,7 +870,7 @@ export default function Editor(props: EditorProps) {
 
     setLineGroups([...lineGroups])
     setCurLineGroup([])
-    setIsDraging(false)
+    setIsDragging(false)
 
     // save render
     const lastRender = renders.pop()!
@@ -889,7 +886,7 @@ export default function Editor(props: EditorProps) {
   }, [draw, renders, redoRenders, redoLineGroups, lineGroups, original])
 
   const undo = () => {
-    if (runMannually && curLineGroup.length !== 0) {
+    if (runManually && curLineGroup.length !== 0) {
       undoStroke()
     } else {
       undoRender()
@@ -907,7 +904,6 @@ export default function Editor(props: EditorProps) {
     }
     if (isCmdZ) {
       event.preventDefault()
-      console.log('undo')
       return true
     }
     return false
@@ -923,7 +919,7 @@ export default function Editor(props: EditorProps) {
       return false
     }
 
-    if (runMannually) {
+    if (runManually) {
       if (curLineGroup.length === 0) {
         return true
       }
@@ -955,7 +951,7 @@ export default function Editor(props: EditorProps) {
 
     setLineGroups([...lineGroups, lineGroup])
     setCurLineGroup([])
-    setIsDraging(false)
+    setIsDragging(false)
 
     const render = redoRenders.pop()!
     const newRenders = [...renders, render]
@@ -964,7 +960,7 @@ export default function Editor(props: EditorProps) {
   }, [draw, renders, redoRenders, redoLineGroups, lineGroups, original])
 
   const redo = () => {
-    if (runMannually && redoCurLines.length !== 0) {
+    if (runManually && redoCurLines.length !== 0) {
       redoStroke()
     } else {
       redoRender()
@@ -983,7 +979,6 @@ export default function Editor(props: EditorProps) {
     }
     if (isCmdZ) {
       event.preventDefault()
-      console.log('redo')
       return true
     }
     return false
@@ -999,7 +994,7 @@ export default function Editor(props: EditorProps) {
       return false
     }
 
-    if (runMannually) {
+    if (runManually) {
       if (redoCurLines.length === 0) {
         return true
       }
@@ -1099,12 +1094,12 @@ export default function Editor(props: EditorProps) {
   useHotKey(
     'shift+r',
     () => {
-      if (runMannually && hadDrawSomething()) {
+      if (runManually && hadDrawSomething()) {
         runInpainting()
       }
     },
     {},
-    [runMannually, runInpainting, hadDrawSomething]
+    [runManually, runInpainting, hadDrawSomething]
   )
 
   useHotKey(
