@@ -267,6 +267,12 @@ great online services [here](https://cleanup.pictures/).
 - Start development server: `yarn start`
 - Build: `yarn build`
 
+If `yarn` is not installed (for example shell exits with code 127), use npm equivalents:
+
+- Install dependencies: `cd lama_cleaner/app/ && npm install`
+- Start development server: `npm run start`
+- Build: `npm run build`
+
 If you changed frontend source files under `lama_cleaner/app/src`, rebuild before running backend-only mode so Flask serves updated static assets from `lama_cleaner/app/build`.
 
 ### Local editable install workflow

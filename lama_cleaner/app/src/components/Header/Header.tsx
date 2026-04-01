@@ -1,7 +1,7 @@
 import { ArrowLeftIcon, UploadIcon } from '@heroicons/react/outline'
 import React, { useState } from 'react'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { fileState, isSDState } from '../../store/Atoms'
+import { AIModel, fileState, isSDState, settingState } from '../../store/Atoms'
 import Button from '../shared/Button'
 import Shortcuts from '../Shortcuts/Shortcuts'
 import useResolution from '../../hooks/useResolution'
@@ -9,8 +9,19 @@ import { ThemeChanger } from './ThemeChanger'
 import SettingIcon from '../Settings/SettingIcon'
 import PromptInput from './PromptInput'
 
+const MODEL_DISPLAY_NAME: { [key in AIModel]: string } = {
+  [AIModel.LAMA]: 'LaMa',
+  [AIModel.LDM]: 'LDM',
+  [AIModel.ZITS]: 'ZITS',
+  [AIModel.MAT]: 'MAT',
+  [AIModel.FCF]: 'FcF',
+  [AIModel.SD14]: 'SD 1.4',
+  [AIModel.CV2]: 'CV2',
+}
+
 const Header = () => {
   const [file, setFile] = useRecoilState(fileState)
+  const [settings, setSettingState] = useRecoilState(settingState)
   const resolution = useResolution()
   const [uploadElemId] = useState(`file-upload-${Math.random().toString()}`)
   const isSD = useRecoilValue(isSDState)
@@ -42,6 +53,17 @@ const Header = () => {
         {isSD && file ? <PromptInput /> : <></>}
 
         <div className="header-icons-wrapper">
+          {file && (
+            <div
+              className="model-chip"
+              title="Current model. Click to open settings."
+              onClick={() => {
+                setSettingState({ ...settings, show: true })
+              }}
+            >
+              Model: {MODEL_DISPLAY_NAME[settings.model] || settings.model}
+            </div>
+          )}
           <ThemeChanger />
           {file && (
             <div className="header-icons">

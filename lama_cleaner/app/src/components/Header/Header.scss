@@ -23,6 +23,21 @@ header {
   align-items: center;
   gap: 12px;
   justify-self: end;
+
+  .model-chip {
+    font-size: 0.82rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid rgb(100, 100, 120, 0.35);
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+    background-color: rgb(255, 204, 0, 0.12);
+    transition: background-color 0.2s ease;
+  }
+
+  .model-chip:hover {
+    background-color: rgb(255, 204, 0, 0.22);
+  }
 }
 
 .header-icons {
