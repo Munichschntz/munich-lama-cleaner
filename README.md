@@ -240,8 +240,7 @@ great online services [here](https://cleanup.pictures/).
 
 ## Docker
 
-Run within a Docker container. Set the `CACHE_DIR` to models location path. Optionally add a `-d` option to
-the `docker run` command below to run as a daemon.
+Run lama-cleaner in Docker. Models are downloaded automatically and should be persisted with a mounted cache directory.
 
 ### Build Docker image
 
@@ -264,3 +263,11 @@ python3 main.py --device=cuda --port=8080 --host=0.0.0.0
 ```
 
 Then open [http://localhost:8080](http://localhost:8080)
+
+### Docker documentation
+
+- [Docker Quickstart](DOCKER_QUICKSTART.md)
+- [Docker GPU Setup](DOCKER_GPU_SETUP.md)
+- [Docker Models and Cache](DOCKER_MODELS_CACHE.md)
+- [Docker Troubleshooting](DOCKER_TROUBLESHOOTING.md)
+- [Docker Compose](DOCKER_COMPOSE.md)
