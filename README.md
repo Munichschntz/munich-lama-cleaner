@@ -62,6 +62,9 @@ lama-cleaner --preload-models all --preload-only
 
 # Optional: choose and persist model cache root directory
 lama-cleaner --cache-dir "D:/lama-cleaner-cache"
+
+# Optional: set cache root via environment variable
+LAMA_CLEANER_CACHE_DIR="$HOME/lama-cleaner-cache" lama-cleaner --model lama
 ```
 
 Windows 11 without Docker: [Windows Native Setup](WINDOWS_NATIVE_SETUP.md)
@@ -86,6 +89,20 @@ Available arguments:
 | --gui-size        | Set the window size for the application                                                                                       | 1600 1000 |
 | --input           | Path to image you want to load by default                                                                                     | None     |
 | --debug           | Enable debug mode for flask web server                                                                                        |          |
+
+Cache directory precedence (highest to lowest):
+
+1. `--cache-dir`
+2. `LAMA_CLEANER_CACHE_DIR`
+3. `CACHE_DIR` (legacy)
+4. persisted config file (`~/.config/lama-cleaner/config.json` on Linux)
+
+When a cache root is configured, lama-cleaner derives and exports these paths:
+
+- `TORCH_HOME=<cache_root>/torch`
+- `HF_HOME=<cache_root>/huggingface`
+- `TRANSFORMERS_CACHE=<cache_root>/huggingface/transformers`
+- `HUGGINGFACE_HUB_CACHE=<cache_root>/huggingface/hub`
 
 ## Inpainting Model
 
@@ -151,8 +168,12 @@ Lama Cleaner provides three ways to run inpainting model on images, you can chan
 ## Download Model Manually
 
 If you have problems downloading the model automatically when lama-cleaner start,
-you can download it manually. By default lama-cleaner will load model from `TORCH_HOME=~/.cache/torch/hub/checkpoints/`,
-you can set `TORCH_HOME` to other folder and put the models there.
+you can download it manually and place files under your configured cache root.
+
+- If cache root is set (recommended):
+  - checkpoints go in `<cache_root>/torch/hub/checkpoints/`
+  - huggingface files go under `<cache_root>/huggingface/`
+- If no cache root is set, `TORCH_HOME`/`HF_HOME` defaults are used by your Python environment.
 
 - Github:
   - [LaMa](https://github.com/Sanster/models/releases/tag/add_big_lama)
@@ -168,7 +189,7 @@ you can set `TORCH_HOME` to other folder and put the models there.
 
 ### Model download issues
 
-- Set `TORCH_HOME` or `CACHE_DIR` to a writable folder.
+- Set `--cache-dir` or `LAMA_CLEANER_CACHE_DIR` to a writable folder (`CACHE_DIR` is still supported as legacy).
 - Pre-download model files into your checkpoint cache if auto-download is blocked.
 - For `sd1.4`, pass `--hf_access_token` once to fetch private model artifacts.
 
@@ -259,16 +280,18 @@ docker build -f Dockerfile -t lamacleaner .
 ### Run Docker (cpu)
 
 ```
-docker run -p 8080:8080 -e CACHE_DIR=/app/models -v  $(pwd)/models:/app/models -v $(pwd):/app --rm lamacleaner \
+docker run -p 8080:8080 -e LAMA_CLEANER_CACHE_DIR=/app/models -v  $(pwd)/models:/app/models -v $(pwd):/app --rm lamacleaner \
 python3 main.py --device=cpu --port=8080 --host=0.0.0.0
 ```
 
 ### Run Docker (gpu)
 
 ```
-docker run --gpus all -p 8080:8080 -e CACHE_DIR=/app/models -v $(pwd)/models:/app/models -v $(pwd):/app --rm lamacleaner \
+docker run --gpus all -p 8080:8080 -e LAMA_CLEANER_CACHE_DIR=/app/models -v $(pwd)/models:/app/models -v $(pwd):/app --rm lamacleaner \
 python3 main.py --device=cuda --port=8080 --host=0.0.0.0
 ```
+
+> `LAMA_CLEANER_CACHE_DIR` is the preferred environment variable. `CACHE_DIR` remains supported for backward compatibility.
 
 Then open [http://localhost:8080](http://localhost:8080)
 
