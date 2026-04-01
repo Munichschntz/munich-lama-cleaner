@@ -70,6 +70,12 @@ class ModelManager:
         self._cache = {}
         self.model = self.init_model(name, device, **kwargs)
 
+    def evict_cache_except(self, keep_names):
+        keep = set(keep_names)
+        for cached_name in list(self._cache.keys()):
+            if cached_name not in keep:
+                del self._cache[cached_name]
+
     def init_model(self, name: str, device, **kwargs):
         if name not in models:
             raise NotImplementedError(f"Not supported model: {name}")
@@ -94,6 +100,9 @@ class ModelManager:
         try:
             self.model = self.init_model(new_name, self.device, **self.kwargs)
             self.name = new_name
+            # Keep only the active model in cache to avoid unbounded memory growth
+            # when users switch between multiple heavyweight models.
+            self.evict_cache_except({new_name})
         except NotImplementedError as e:
             raise e
 

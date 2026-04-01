@@ -315,7 +315,10 @@ def current_model():
 
 @app.route("/model_downloaded/<name>")
 def model_downloaded(name):
-    return jsonify({"downloaded": model.is_downloaded(name)}), 200
+    try:
+        return jsonify({"downloaded": model.is_downloaded(name)}), 200
+    except NotImplementedError:
+        return error_response("MODEL_NOT_IMPLEMENTED", f"{name} not implemented", status=404)
 
 
 @app.route("/model_capabilities")
@@ -352,7 +355,7 @@ def switch_model():
     except NotImplementedError:
         set_server_status("error", f"{new_name} not implemented", None)
         return error_response(
-            "MODEL_NOT_IMPLEMENTED", f"{new_name} not implemented", status=403
+            "MODEL_NOT_IMPLEMENTED", f"{new_name} not implemented", status=404
         )
     except Exception as e:
         logger.exception("switch model failed")
