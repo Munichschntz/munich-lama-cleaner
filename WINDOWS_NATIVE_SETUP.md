@@ -84,7 +84,38 @@ Then open:
 lama-cleaner --model=lama --device=cpu --port=8080 --host=127.0.0.1
 ```
 
-## 8. Preload Models (Optional)
+## 8. One-Command Launch Scripts (Recommended)
+
+This repository includes two PowerShell launchers:
+
+- `run-gpu.ps1`
+- `run-cpu.ps1`
+
+They will:
+
+- activate `.venv`
+- ensure `TORCH_HOME` exists (defaults to `C:\lama-cleaner-models`)
+- start lama-cleaner with sensible defaults
+
+Start with GPU:
+
+```powershell
+.\run-gpu.ps1
+```
+
+Start with CPU:
+
+```powershell
+.\run-cpu.ps1
+```
+
+Use a different model or port:
+
+```powershell
+.\run-gpu.ps1 -Model mat -Port 8081
+```
+
+## 9. Preload Models (Optional)
 
 Preload selected models:
 
@@ -98,7 +129,7 @@ Preload all models:
 lama-cleaner --model=lama --preload-models all --preload-only
 ```
 
-## 9. Stable Diffusion (`sd1.4`) Note
+## 10. Stable Diffusion (`sd1.4`) Note
 
 First download requires a Hugging Face token unless you already downloaded weights and use `--sd-run-local`.
 
@@ -114,7 +145,7 @@ After model files exist locally:
 lama-cleaner --model=sd1.4 --sd-run-local --device=cuda --port=8080 --host=127.0.0.1
 ```
 
-## 10. Common Issues
+## 11. Common Issues
 
 - `lama-cleaner` not found:
   - Reactivate venv: `.\.venv\Scripts\Activate.ps1`

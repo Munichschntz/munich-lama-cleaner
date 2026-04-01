@@ -63,6 +63,8 @@ lama-cleaner --preload-models all --preload-only
 
 Windows 11 without Docker: [Windows Native Setup](WINDOWS_NATIVE_SETUP.md)
 
+Quick launch scripts (PowerShell): `run-gpu.ps1` and `run-cpu.ps1`
+
 Available arguments:
 
 | Name              | Description                                                                                                                   | Default  |
