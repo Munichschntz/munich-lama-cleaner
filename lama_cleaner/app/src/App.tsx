@@ -81,8 +81,8 @@ function App() {
     setIsDragging(false)
     if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
       if (event.dataTransfer.files.length > 1) {
-        const dragFiles = Array.from(event.dataTransfer.files).filter(f =>
-          SUPPORTED_FILE_TYPE.includes(f.type)
+        const dragFiles = Array.from(event.dataTransfer.files as FileList).filter(
+          (f: File) => SUPPORTED_FILE_TYPE.includes(f.type)
         )
         if (dragFiles.length > 0) {
           setFile(dragFiles[0])
