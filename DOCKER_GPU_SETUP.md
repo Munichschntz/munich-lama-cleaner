@@ -8,6 +8,29 @@ Use this guide before running lama-cleaner with `--device=cuda`.
 - Docker Engine 19.03+.
 - NVIDIA Container Toolkit installed and configured for Docker.
 
+## Install NVIDIA Container Toolkit (Ubuntu/Debian)
+
+Run these commands on the host:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y curl gpg
+
+distribution=$(. /etc/os-release; echo ${ID}${VERSION_ID})
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | \
+  sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+```
+
+If your exact distro version is not listed by NVIDIA, use the nearest supported Ubuntu/Debian repository from the official NVIDIA Container Toolkit documentation.
+
 ## Verify Host GPU
 
 ```bash
