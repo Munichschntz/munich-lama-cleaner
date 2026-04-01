@@ -94,8 +94,7 @@ class EncoderEpilogue(torch.nn.Module):
         self.fc = FullyConnectedLayer(in_channels * (resolution ** 2), z_dim, activation=activation)
         self.dropout = torch.nn.Dropout(p=0.5)
 
-    def forward(self, x, cmap, force_fp32=False):
-        _ = force_fp32  # unused
+    def forward(self, x, cmap):
         dtype = torch.float32
         memory_format = torch.contiguous_format
 
@@ -478,8 +477,7 @@ class SynthesisForeword(torch.nn.Module):
         if architecture == 'skip':
             self.torgb = ToRGBLayer(self.in_channels, self.img_channels, kernel_size=1, w_dim=(z_dim // 2) * 3)
 
-    def forward(self, x, ws, feats, img, force_fp32=False):
-        _ = force_fp32  # unused
+    def forward(self, x, ws, feats, img):
         dtype = torch.float32
         memory_format = torch.contiguous_format
 

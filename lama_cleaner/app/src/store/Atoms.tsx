@@ -121,13 +121,6 @@ export const cropperWidth = selector({
   },
 })
 
-// Deprecated aliases kept for backward compatibility across imports.
-export const croperState = cropperState
-export const croperX = cropperX
-export const croperY = cropperY
-export const croperHeight = cropperHeight
-export const croperWidth = cropperWidth
-
 interface ToastAtomState {
   open: boolean
   desc: string
