@@ -78,9 +78,9 @@ export default function FileSelect(props: FileSelectProps) {
 
     const getAsEntry = (item: DataTransferItem): FileSystemEntryLike | null => {
       const webkitItem = item as DataTransferItem & {
-        webkitGetAsEntry?: () => FileSystemEntryLike | null
+        webkitGetAsEntry?: () => any
       }
-      return webkitItem.webkitGetAsEntry?.() || null
+      return (webkitItem.webkitGetAsEntry?.() as FileSystemEntryLike | null) || null
     }
 
     // Unfortunately items is not iterable i.e. no forEach
