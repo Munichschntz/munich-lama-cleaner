@@ -57,8 +57,15 @@ const Header = () => {
             <div
               className="model-chip"
               title="Current model. Click to open settings."
+              role="button"
+              tabIndex={0}
               onClick={() => {
                 setSettingState({ ...settings, show: true })
+              }}
+              onKeyDown={ev => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  setSettingState({ ...settings, show: true })
+                }
               }}
             >
               Model: {MODEL_DISPLAY_NAME[settings.model] || settings.model}

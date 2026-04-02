@@ -46,6 +46,7 @@
     "preflight": "node scripts/preflight.js",
     "preflight:win": "cross-env NODE_OPTIONS=--openssl-legacy-provider node scripts/preflight.js",
     "lint": "eslint --ext .ts,.tsx src",
+    "lint:strict": "eslint --ext .ts,.tsx src --max-warnings=0",
     "lint:fix": "eslint --ext .ts,.tsx src --fix",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
