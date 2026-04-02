@@ -231,7 +231,7 @@ function canvasToBlob(canvas: HTMLCanvasElement, mime: string): Promise<Blob> {
 }
 
 const setToClipboard = async (blob: Blob) => {
-  const data = [new ClipboardItem({ [blob.type]: blob })]
+  const data = [new ClipboardItem({ [blob.type]: blob as any })]
   await navigator.clipboard.write(data)
 }
 

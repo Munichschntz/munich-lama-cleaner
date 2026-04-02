@@ -141,7 +141,7 @@ export default function Editor(props: EditorProps) {
   const [brushSize, setBrushSize] = useState(40)
   const [original, isOriginalLoaded] = useImage(file)
   const [renders, setRenders] = useState<HTMLImageElement[]>([])
-  const [context, setContext] = useState<CanvasRenderingContext2D>()
+  const [context, setContext] = useState<CanvasRenderingContext2D | null>(null)
   const [maskCanvas] = useState<HTMLCanvasElement>(() => {
     return document.createElement('canvas')
   })
