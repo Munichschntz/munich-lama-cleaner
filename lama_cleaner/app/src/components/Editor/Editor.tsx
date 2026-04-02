@@ -634,22 +634,24 @@ export default function Editor(props: EditorProps) {
       setCurLineGroup(session.curLineGroup || [])
       setLastLineGroup(session.lastLineGroup || [])
 
-      const restoredSnapshots: HistorySnapshot[] = []
-      for (const snapshot of session.historySnapshots || []) {
-        const img = new Image()
-        await loadImage(img, snapshot.src)
-        restoredSnapshots.push({
-          ...snapshot,
-          src: img.currentSrc || snapshot.src,
+      const restoredSnapshots: HistorySnapshot[] = await Promise.all(
+        (session.historySnapshots || []).map(async snapshot => {
+          const img = new Image()
+          await loadImage(img, snapshot.src)
+          return {
+            ...snapshot,
+            src: img.currentSrc || snapshot.src,
+          }
         })
-      }
+      )
 
-      const restoredRenders: HTMLImageElement[] = []
-      for (const snapshot of restoredSnapshots) {
-        const img = new Image()
-        await loadImage(img, snapshot.src)
-        restoredRenders.push(img)
-      }
+      const restoredRenders: HTMLImageElement[] = await Promise.all(
+        restoredSnapshots.map(async snapshot => {
+          const img = new Image()
+          await loadImage(img, snapshot.src)
+          return img
+        })
+      )
 
       setHistorySnapshots(restoredSnapshots)
       setRenders(restoredRenders)
