@@ -38,6 +38,7 @@ import {
   promptState,
   runManuallyState,
   seedState,
+  Settings,
   settingState,
   toastState,
 } from '../../store/Atoms'
@@ -69,7 +70,7 @@ interface HistorySnapshot {
 interface EditorSession {
   version: number
   fileName: string
-  settings: any
+  settings: Settings
   prompt: string
   seed: number
   cropperRect: { x: number; y: number; width: number; height: number }

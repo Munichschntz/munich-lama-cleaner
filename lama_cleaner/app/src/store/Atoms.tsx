@@ -1,4 +1,4 @@
-import { atom, selector } from 'recoil'
+import { atom, DefaultValue, selector } from 'recoil'
 import _ from 'lodash'
 import { HDStrategy, LDMSampler } from '../components/Settings/HDSettingBlock'
 import { ToastState } from '../components/shared/Toast'
@@ -50,13 +50,16 @@ export const promptState = atom<string>({
 /** @deprecated Use promptState instead */
 export const propmtState = promptState
 
-export const isInpaintingState = selector({
+export const isInpaintingState = selector<boolean>({
   key: 'isInpainting',
   get: ({ get }) => {
     const app = get(appState)
     return app.isInpainting
   },
-  set: ({ get, set }, newValue: any) => {
+  set: ({ get, set }, newValue: boolean | DefaultValue) => {
+    if (newValue instanceof DefaultValue) {
+      return
+    }
     const app = get(appState)
     if (newValue) {
       set(appState, {
@@ -85,37 +88,49 @@ export const cropperState = atom<Rect>({
   },
 })
 
-export const cropperX = selector({
+export const cropperX = selector<number>({
   key: 'cropperX',
   get: ({ get }) => get(cropperState).x,
-  set: ({ get, set }, newValue: any) => {
+  set: ({ get, set }, newValue: number | DefaultValue) => {
+    if (newValue instanceof DefaultValue) {
+      return
+    }
     const rect = get(cropperState)
     set(cropperState, { ...rect, x: newValue })
   },
 })
 
-export const cropperY = selector({
+export const cropperY = selector<number>({
   key: 'cropperY',
   get: ({ get }) => get(cropperState).y,
-  set: ({ get, set }, newValue: any) => {
+  set: ({ get, set }, newValue: number | DefaultValue) => {
+    if (newValue instanceof DefaultValue) {
+      return
+    }
     const rect = get(cropperState)
     set(cropperState, { ...rect, y: newValue })
   },
 })
 
-export const cropperHeight = selector({
+export const cropperHeight = selector<number>({
   key: 'cropperHeight',
   get: ({ get }) => get(cropperState).height,
-  set: ({ get, set }, newValue: any) => {
+  set: ({ get, set }, newValue: number | DefaultValue) => {
+    if (newValue instanceof DefaultValue) {
+      return
+    }
     const rect = get(cropperState)
     set(cropperState, { ...rect, height: newValue })
   },
 })
 
-export const cropperWidth = selector({
+export const cropperWidth = selector<number>({
   key: 'cropperWidth',
   get: ({ get }) => get(cropperState).width,
-  set: ({ get, set }, newValue: any) => {
+  set: ({ get, set }, newValue: number | DefaultValue) => {
+    if (newValue instanceof DefaultValue) {
+      return
+    }
     const rect = get(cropperState)
     set(cropperState, { ...rect, width: newValue })
   },
@@ -316,15 +331,23 @@ const localStorageEffect =
         storageSettings.showCropper = storageSettings.showCroper
       }
       if (storageSettings.hdSettings) {
-        Object.values(storageSettings.hdSettings).forEach((modelSettings: any) => {
-          if (
-            modelSettings?.hdStrategyCropTrigerSize !== undefined &&
-            modelSettings.hdStrategyCropTriggerSize === undefined
-          ) {
-            modelSettings.hdStrategyCropTriggerSize =
-              modelSettings.hdStrategyCropTrigerSize
-          }
-        })
+        storageSettings.hdSettings = Object.fromEntries(
+          Object.entries(storageSettings.hdSettings).map(([modelName, modelSettings]: any) => {
+            if (
+              modelSettings?.hdStrategyCropTrigerSize !== undefined &&
+              modelSettings.hdStrategyCropTriggerSize === undefined
+            ) {
+              return [
+                modelName,
+                {
+                  ...modelSettings,
+                  hdStrategyCropTriggerSize: modelSettings.hdStrategyCropTrigerSize,
+                },
+              ]
+            }
+            return [modelName, modelSettings]
+          })
+        )
       }
 
       const restored = _.merge(
@@ -340,7 +363,7 @@ const localStorageEffect =
       setSelf(restored)
     }
 
-    onSet((newValue: Settings, val: string, isReset: boolean) =>
+    onSet((newValue: Settings, _oldValue: Settings, isReset: boolean) =>
       isReset
         ? localStorage.removeItem(key)
         : localStorage.setItem(key, JSON.stringify(newValue))
@@ -356,25 +379,31 @@ export const settingState = atom<Settings>({
   effects: [localStorageEffect(ROOT_STATE_KEY)],
 })
 
-export const seedState = selector({
+export const seedState = selector<number>({
   key: 'seed',
   get: ({ get }) => {
     const settings = get(settingState)
     return settings.sdSeed
   },
-  set: ({ get, set }, newValue: any) => {
+  set: ({ get, set }, newValue: number | DefaultValue) => {
+    if (newValue instanceof DefaultValue) {
+      return
+    }
     const settings = get(settingState)
     set(settingState, { ...settings, sdSeed: newValue })
   },
 })
 
-export const hdSettingsState = selector({
+export const hdSettingsState = selector<HDSettings>({
   key: 'hdSettings',
   get: ({ get }) => {
     const settings = get(settingState)
     return settings.hdSettings[settings.model]
   },
-  set: ({ get, set }, newValue: any) => {
+  set: ({ get, set }, newValue: Partial<HDSettings> | DefaultValue) => {
+    if (newValue instanceof DefaultValue) {
+      return
+    }
     const settings = get(settingState)
     const hdSettings = settings.hdSettings[settings.model]
     const newHDSettings = { ...hdSettings, ...newValue }
