@@ -76,9 +76,9 @@ export default function FileSelect(props: FileSelectProps) {
     // Use BFS to traverse entire directory/file structure
     const queue: FileSystemEntryLike[] = []
 
-    const getAsEntry = (item: DataTransferItem): FileSystemEntryLike => {
+    const getAsEntry = (item: DataTransferItem): FileSystemEntryLike | null => {
       const webkitItem = item as DataTransferItem & {
-        webkitGetAsEntry?: () => FileSystemEntryLike
+        webkitGetAsEntry?: () => FileSystemEntryLike | null
       }
       return webkitItem.webkitGetAsEntry?.() || null
     }
