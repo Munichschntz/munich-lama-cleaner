@@ -44,6 +44,7 @@ class Config(BaseModel):
 
     # sd
     quality_preset: str = QualityPreset.balanced
+    mask_feather: int = 0
     sd_mask_blur: int = 0
     sd_strength: float = 0.75
     sd_steps: int = 50

@@ -259,6 +259,23 @@ function ModelSettingBlock() {
     )
   }
 
+  const renderMaskFeatherDesc = () => {
+    return (
+      <NumberInputSetting
+        title="Mask Feather"
+        value={`${setting.maskFeather}`}
+        suffix="pixel"
+        desc="Softens the transition between original and inpainted pixels around the mask edge for all models."
+        onValue={value => {
+          const val = value.length === 0 ? 0 : parseInt(value, 10)
+          setSettingState(old => {
+            return { ...old, maskFeather: val }
+          })
+        }}
+      />
+    )
+  }
+
   const renderTilingDesc = () => {
     return (
       <>
@@ -342,6 +359,7 @@ function ModelSettingBlock() {
       <>
         {renderCapabilitiesDesc()}
         {renderQualityPresetDesc()}
+        {renderMaskFeatherDesc()}
         {renderTilingDesc()}
         {modelDesc}
       </>

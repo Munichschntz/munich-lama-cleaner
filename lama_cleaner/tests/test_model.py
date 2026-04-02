@@ -33,6 +33,7 @@ def get_config(strategy, **kwargs):
         hd_strategy_crop_margin=32,
         hd_strategy_crop_trigger_size=200,
         hd_strategy_resize_limit=200,
+        mask_feather=0,
     )
     data.update(**kwargs)
     return Config(**data)

@@ -42,6 +42,27 @@ class InpaintModel:
         """
         ...
 
+    def _mask_blend_alpha(self, mask, config: Config):
+        binary_mask = (mask >= 127).astype(np.uint8) * 255
+        feather = max(0, int(config.mask_feather))
+        if feather == 0:
+            return binary_mask[:, :, np.newaxis].astype(np.float32) / 255.0
+
+        kernel_size = feather * 2 + 1
+        alpha = cv2.GaussianBlur(binary_mask, (kernel_size, kernel_size), 0)
+        return alpha[:, :, np.newaxis].astype(np.float32) / 255.0
+
+    def _blend_inpaint_result(self, image, result, mask, config: Config):
+        if int(config.mask_feather) <= 0:
+            original_pixel_indices = mask < 127
+            result[original_pixel_indices] = image[:, :, ::-1][original_pixel_indices]
+            return result
+
+        alpha = self._mask_blend_alpha(mask, config)
+        original = image[:, :, ::-1].astype(np.float32)
+        blended = result.astype(np.float32) * alpha + original * (1.0 - alpha)
+        return np.clip(np.rint(blended), 0, 255).astype(np.uint8)
+
     def _pad_forward(self, image, mask, config: Config):
         origin_height, origin_width = image.shape[:2]
         pad_image = pad_img_to_modulo(
@@ -55,10 +76,7 @@ class InpaintModel:
 
         result = self.forward(pad_image, pad_mask, config)
         result = result[0:origin_height, 0:origin_width, :]
-
-        original_pixel_indices = mask < 127
-        result[original_pixel_indices] = image[:, :, ::-1][original_pixel_indices]
-        return result
+        return self._blend_inpaint_result(image, result, mask, config)
 
     @torch.no_grad()
     def __call__(self, image, mask, config: Config):
@@ -106,10 +124,9 @@ class InpaintModel:
                     (origin_size[1], origin_size[0]),
                     interpolation=cv2.INTER_CUBIC,
                 )
-                original_pixel_indices = mask < 127
-                inpaint_result[original_pixel_indices] = image[:, :, ::-1][
-                    original_pixel_indices
-                ]
+                inpaint_result = self._blend_inpaint_result(
+                    image, inpaint_result, mask, config
+                )
 
         if inpaint_result is None:
             if config.enable_tiling and max(image.shape[:2]) > config.tile_size:
@@ -153,6 +170,10 @@ class InpaintModel:
 
                 tile_image = image[y1:y2, x1:x2, :]
                 tile_result = self._pad_forward(tile_image, tile_mask, config)
+                if int(config.mask_feather) > 0:
+                    result[y1:y2, x1:x2, :] = tile_result
+                    continue
+
                 repaint_indices = tile_mask >= 127
                 result[y1:y2, x1:x2, :][repaint_indices] = tile_result[repaint_indices]
 

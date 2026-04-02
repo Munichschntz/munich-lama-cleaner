@@ -191,6 +191,7 @@ export interface Settings {
 
   // For SD
   qualityPreset: QualityPreset
+  maskFeather: number
   sdMaskBlur: number
   sdMode: SDMode
   sdStrength: number
@@ -296,6 +297,7 @@ export const settingStateDefault: Settings = {
 
   // SD
   qualityPreset: QualityPreset.balanced,
+  maskFeather: 0,
   sdMaskBlur: 5,
   sdMode: SDMode.inpainting,
   sdStrength: 0.75,

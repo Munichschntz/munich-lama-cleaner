@@ -40,6 +40,7 @@ def build_config():
         prompt="",
         use_cropper=False,
         quality_preset=QualityPreset.balanced,
+        mask_feather=0,
         sd_mask_blur=5,
         sd_strength=0.75,
         sd_steps=40,

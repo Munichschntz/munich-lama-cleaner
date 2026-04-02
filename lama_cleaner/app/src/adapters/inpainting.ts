@@ -72,6 +72,7 @@ export default async function inpaint(
   fd.append('cropperHeight', cropperRect.height.toString())
   fd.append('cropperWidth', cropperRect.width.toString())
   fd.append('useCropper', settings.showCropper ? 'true' : 'false')
+  fd.append('maskFeather', settings.maskFeather.toString())
   fd.append('sdMaskBlur', settings.sdMaskBlur.toString())
   fd.append('qualityPreset', settings.qualityPreset.toString())
   fd.append('sdStrength', settings.sdStrength.toString())

@@ -1174,9 +1174,9 @@ class FcF(InpaintModel):
 
             # only paste masked area result
             inpaint_result = cv2.resize(inpaint_result, (origin_size[1], origin_size[0]), interpolation=cv2.INTER_CUBIC)
-
-            original_pixel_indices = crop_mask < 127
-            inpaint_result[original_pixel_indices] = crop_image[:, :, ::-1][original_pixel_indices]
+            inpaint_result = self._blend_inpaint_result(
+                crop_image, inpaint_result, crop_mask, config
+            )
 
             crop_result.append((inpaint_result, crop_box))
 

@@ -233,6 +233,7 @@ def process():
                 deprecated_used=deprecated_used,
             ),
             "quality_preset": quality_preset,
+            "mask_feather": get_form_field(form, "maskFeather", default=0),
             "sd_mask_blur": get_form_field(form, "sdMaskBlur", default=0),
             "sd_strength": get_form_field(form, "sdStrength", default=0.75),
             "sd_steps": get_form_field(form, "sdSteps", default=50),
