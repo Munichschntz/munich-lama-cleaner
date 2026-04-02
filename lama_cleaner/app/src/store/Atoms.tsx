@@ -320,7 +320,8 @@ export const settingStateDefault: Settings = {
 
 const localStorageEffect =
   (key: string) =>
-  ({ setSelf, onSet }: AtomEffect<Settings>) => {
+  (params: any) => {
+    const { setSelf, onSet } = params
     const savedValue = localStorage.getItem(key)
     if (savedValue != null) {
       const storageSettings = JSON.parse(savedValue)
