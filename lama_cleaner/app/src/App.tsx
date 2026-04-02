@@ -24,7 +24,7 @@ keepGUIAlive()
 function App() {
   const [file, setFile] = useRecoilState(fileState)
   const [theme, setTheme] = useRecoilState(themeState)
-  const [toastVal, setToastState] = useRecoilState(toastState)
+  const [, setToastState] = useRecoilState(toastState)
   const userInputImage = useInputImage()
 
   // Set Input Image
@@ -110,7 +110,7 @@ function App() {
       }
       event.dataTransfer.clearData()
     }
-  }, [])
+  }, [setFile, setToastState])
 
   React.useEffect(() => {
     window.addEventListener('dragenter', handleDragIn)
@@ -123,7 +123,7 @@ function App() {
       window.removeEventListener('dragover', handleDrag)
       window.removeEventListener('drop', handleDrop)
     }
-  })
+  }, [handleDragIn, handleDragOut, handleDrag, handleDrop])
 
   ///
 

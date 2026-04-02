@@ -133,7 +133,7 @@ export default function Editor(props: EditorProps) {
   const [settings, setSettings] = useRecoilState(settingState)
   const [seedVal, setSeed] = useRecoilState(seedState)
   const [cropperRect, setCropperRect] = useRecoilState(cropperState)
-  const [toastVal, setToastState] = useRecoilState(toastState)
+  const [, setToastState] = useRecoilState(toastState)
   const [isInpainting, setIsInpainting] = useRecoilState(isInpaintingState)
   const runManually = useRecoilValue(runManuallyState)
   const isSD = useRecoilValue(isSDState)
@@ -277,8 +277,6 @@ export default function Editor(props: EditorProps) {
             )
           }
         } else if (renders.length > 0) {
-          console.info('gradually inpainting on last result')
-
           const lastRender = renders[renders.length - 1]
           targetFile = await srcToFile(
             lastRender.currentSrc,
