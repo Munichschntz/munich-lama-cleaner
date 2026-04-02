@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback } from 'react'
 import { useRecoilState } from 'recoil'
 import * as PopoverPrimitive from '@radix-ui/react-popover'
 import { useToggle } from 'react-use'
@@ -14,6 +14,23 @@ const INPUT_WIDTH = 30
 const SidePanel = () => {
   const [open, toggleOpen] = useToggle(true)
   const [setting, setSettingState] = useRecoilState(settingState)
+
+  const updateSetting = useCallback(
+    (patch: Partial<typeof setting>) => {
+      setSettingState(old => {
+        return { ...old, ...patch }
+      })
+    },
+    [setSettingState, setting]
+  )
+
+  const intOrZero = (value: string): number => {
+    return value.length === 0 ? 0 : parseInt(value, 10)
+  }
+
+  const floatOrZero = (value: string): number => {
+    return value.length === 0 ? 0 : parseFloat(value)
+  }
 
   return (
     <div className="side-panel">
@@ -32,9 +49,7 @@ const SidePanel = () => {
                 <Switch
                   checked={setting.showCropper}
                   onCheckedChange={value => {
-                    setSettingState(old => {
-                      return { ...old, showCropper: value }
-                    })
+                    updateSetting({ showCropper: value })
                   }}
                 >
                   <SwitchThumb />
@@ -61,10 +76,7 @@ const SidePanel = () => {
               value={`${setting.sdSteps}`}
               desc="Large steps result in better result, but more time-consuming"
               onValue={value => {
-                const val = value.length === 0 ? 0 : parseInt(value, 10)
-                setSettingState(old => {
-                  return { ...old, sdSteps: val }
-                })
+                updateSetting({ sdSteps: intOrZero(value) })
               }}
             />
 
@@ -73,12 +85,9 @@ const SidePanel = () => {
               width={INPUT_WIDTH}
               allowFloat
               value={`${setting.sdStrength}`}
-                desc="How strongly the model transforms the masked area (0–1). Lower values preserve more of the original image."
+              desc="How strongly the model transforms the masked area (0-1). Lower values preserve more of the original image."
               onValue={value => {
-                const val = value.length === 0 ? 0 : parseFloat(value)
-                setSettingState(old => {
-                  return { ...old, sdStrength: val }
-                })
+                updateSetting({ sdStrength: floatOrZero(value) })
               }}
             />
 
@@ -87,12 +96,9 @@ const SidePanel = () => {
               width={INPUT_WIDTH}
               allowFloat
               value={`${setting.sdGuidanceScale}`}
-                desc="How closely the output follows the text prompt. Higher values give more prompt-aligned results but reduce variety."
+              desc="How closely the output follows the text prompt. Higher values give more prompt-aligned results but reduce variety."
               onValue={value => {
-                const val = value.length === 0 ? 0 : parseFloat(value)
-                setSettingState(old => {
-                  return { ...old, sdGuidanceScale: val }
-                })
+                updateSetting({ sdGuidanceScale: floatOrZero(value) })
               }}
             />
 
@@ -100,12 +106,9 @@ const SidePanel = () => {
               title="Mask Blur"
               width={INPUT_WIDTH}
               value={`${setting.sdMaskBlur}`}
-                desc="Gaussian blur radius applied to mask edges before inpainting. Creates smoother transitions between inpainted and original areas."
+              desc="Gaussian blur radius applied to mask edges before inpainting. Creates smoother transitions between inpainted and original areas."
               onValue={value => {
-                const val = value.length === 0 ? 0 : parseInt(value, 10)
-                setSettingState(old => {
-                  return { ...old, sdMaskBlur: val }
-                })
+                updateSetting({ sdMaskBlur: intOrZero(value) })
               }}
             />
 
@@ -119,9 +122,7 @@ const SidePanel = () => {
                   options={Object.values(SDSampler)}
                   onChange={val => {
                     const sampler = val as SDSampler
-                    setSettingState(old => {
-                      return { ...old, sdSampler: sampler }
-                    })
+                    updateSetting({ sdSampler: sampler })
                   }}
                 />
               }
@@ -146,18 +147,13 @@ const SidePanel = () => {
                     desc=""
                     disable={!setting.sdSeedFixed}
                     onValue={value => {
-                      const val = value.length === 0 ? 0 : parseInt(value, 10)
-                      setSettingState(old => {
-                        return { ...old, sdSeed: val }
-                      })
+                      updateSetting({ sdSeed: intOrZero(value) })
                     }}
                   />
                   <Switch
                     checked={setting.sdSeedFixed}
                     onCheckedChange={value => {
-                      setSettingState(old => {
-                        return { ...old, sdSeedFixed: value }
-                      })
+                      updateSetting({ sdSeedFixed: value })
                     }}
                     style={{ marginLeft: '8px' }}
                   >
