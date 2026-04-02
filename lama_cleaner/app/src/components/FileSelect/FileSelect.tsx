@@ -1,6 +1,33 @@
 import React, { useState } from 'react'
 import useResolution from '../../hooks/useResolution'
 
+interface FileSystemFileEntry {
+  isFile: true
+  isDirectory: false
+  file: (
+    successCallback: (file: File) => void,
+    errorCallback?: (err: DOMException) => void
+  ) => void
+}
+
+interface FileSystemDirectoryReader {
+  readEntries: (
+    successCallback: (entries: FileSystemEntryLike[]) => void,
+    errorCallback?: (err: DOMException) => void
+  ) => void
+}
+
+interface FileSystemDirectoryEntry {
+  isFile: false
+  isDirectory: true
+  createReader: () => FileSystemDirectoryReader
+}
+
+type FileSystemEntryLike =
+  | FileSystemFileEntry
+  | FileSystemDirectoryEntry
+  | null
+
 type FileSelectProps = {
   onSelection: (file: File) => void
 }
@@ -30,11 +57,12 @@ export default function FileSelect(props: FileSelectProps) {
       onSelection(file)
     } catch (e) {
       // eslint-disable-next-line
-      alert(`error: ${(e as any).message}`)
+      const message = e instanceof Error ? e.message : String(e)
+      alert(`error: ${message}`)
     }
   }
 
-  async function getFile(entry: any): Promise<File> {
+  async function getFile(entry: FileSystemFileEntry): Promise<File> {
     return new Promise(resolve => {
       entry.file((file: File) => resolve(file))
     })
@@ -46,10 +74,18 @@ export default function FileSelect(props: FileSelectProps) {
   async function getAllFileEntries(items: DataTransferItemList) {
     const fileEntries: Array<File> = []
     // Use BFS to traverse entire directory/file structure
-    const queue = []
+    const queue: FileSystemEntryLike[] = []
+
+    const getAsEntry = (item: DataTransferItem): FileSystemEntryLike => {
+      const webkitItem = item as DataTransferItem & {
+        webkitGetAsEntry?: () => FileSystemEntryLike
+      }
+      return webkitItem.webkitGetAsEntry?.() || null
+    }
+
     // Unfortunately items is not iterable i.e. no forEach
     for (let i = 0; i < items.length; i += 1) {
-      queue.push(items[i].webkitGetAsEntry())
+      queue.push(getAsEntry(items[i]))
     }
     while (queue.length > 0) {
       const entry = queue.shift()
@@ -58,9 +94,7 @@ export default function FileSelect(props: FileSelectProps) {
         const file = await getFile(entry)
         fileEntries.push(file)
       } else if (entry?.isDirectory) {
-        queue.push(
-          ...(await readAllDirectoryEntries((entry as any).createReader()))
-        )
+        queue.push(...(await readAllDirectoryEntries(entry.createReader())))
       }
     }
     return fileEntries
@@ -68,8 +102,10 @@ export default function FileSelect(props: FileSelectProps) {
 
   // Get all the entries (files or sub-directories) in a directory
   // by calling readEntries until it returns empty array
-  async function readAllDirectoryEntries(directoryReader: any) {
-    const entries = []
+  async function readAllDirectoryEntries(
+    directoryReader: FileSystemDirectoryReader
+  ) {
+    const entries: FileSystemEntryLike[] = []
     let readEntries = await readEntriesPromise(directoryReader)
     while (readEntries.length > 0) {
       entries.push(...readEntries)
@@ -83,7 +119,9 @@ export default function FileSelect(props: FileSelectProps) {
   // Wrap readEntries in a promise to make working with readEntries easier
   // readEntries will return only some of the entries in a directory
   // e.g. Chrome returns at most 100 entries at a time
-  async function readEntriesPromise(directoryReader: any): Promise<any> {
+  async function readEntriesPromise(
+    directoryReader: FileSystemDirectoryReader
+  ): Promise<FileSystemEntryLike[]> {
     return new Promise((resolve, reject) => {
       directoryReader.readEntries(resolve, reject)
     })

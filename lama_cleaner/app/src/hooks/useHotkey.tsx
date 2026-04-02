@@ -4,9 +4,9 @@ import { appState } from '../store/Atoms'
 
 const useHotKey = (
   keys: string,
-  callback: any,
+  callback: (...args: unknown[]) => void,
   options?: Options,
-  deps?: any[]
+  deps?: unknown[]
 ) => {
   const app = useRecoilValue(appState)
 

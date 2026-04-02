@@ -1,7 +1,7 @@
 import React from 'react'
 
 type SliderProps = {
-  label?: any
+  label?: React.ReactNode
   value?: number
   min?: number
   max?: number

@@ -49,8 +49,9 @@ export function shareImage(base64: string, name: string) {
   const shareData = {
     files: filesArray,
   }
-  // eslint-disable-nextline
-  const nav: any = navigator
+  const nav = navigator as Navigator & {
+    canShare?: (data: ShareData) => boolean
+  }
   const canShare = nav.canShare && nav.canShare(shareData)
   const userAgent = navigator.userAgent || navigator.vendor
   const isMobile = /android|iPad|iPhone|iPod/i.test(userAgent)
@@ -149,9 +150,9 @@ export function resizeImageFile(
       reject(new Error('Not an image'))
       return
     }
-    reader.onload = (readerEvent: any) => {
+    reader.onload = (readerEvent: ProgressEvent<FileReader>) => {
       image.onload = () => resolve(resize())
-      image.src = readerEvent.target.result
+      image.src = readerEvent.target?.result as string
     }
     reader.readAsDataURL(file)
   })
@@ -217,7 +218,7 @@ export async function askWritePermission() {
   }
 }
 
-function canvasToBlob(canvas: HTMLCanvasElement, mime: string): Promise<any> {
+function canvasToBlob(canvas: HTMLCanvasElement, mime: string): Promise<Blob> {
   return new Promise((resolve, reject) =>
     canvas.toBlob(async d => {
       if (d) {
@@ -229,7 +230,7 @@ function canvasToBlob(canvas: HTMLCanvasElement, mime: string): Promise<any> {
   )
 }
 
-const setToClipboard = async (blob: any) => {
+const setToClipboard = async (blob: Blob) => {
   const data = [new ClipboardItem({ [blob.type]: blob })]
   await navigator.clipboard.write(data)
 }

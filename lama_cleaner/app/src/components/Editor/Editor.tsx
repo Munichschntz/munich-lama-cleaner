@@ -350,10 +350,11 @@ export default function Editor(props: EditorProps) {
 
         // clear redo stack
         resetRedoState()
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e)
         setToastState({
           open: true,
-          desc: e.message ? e.message : e.toString(),
+          desc: message,
           state: 'error',
           duration: 4000,
         })
@@ -575,10 +576,11 @@ export default function Editor(props: EditorProps) {
         state: 'success',
         duration: 1500,
       })
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unable to save session'
       setToastState({
         open: true,
-        desc: e?.message || 'Unable to save session',
+        desc: message,
         state: 'error',
         duration: 2500,
       })
@@ -664,10 +666,11 @@ export default function Editor(props: EditorProps) {
         state: 'success',
         duration: 2000,
       })
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unable to restore session'
       setToastState({
         open: true,
-        desc: e?.message || 'Unable to restore session',
+        desc: message,
         state: 'error',
         duration: 2500,
       })

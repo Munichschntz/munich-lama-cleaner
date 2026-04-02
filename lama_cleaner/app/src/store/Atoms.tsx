@@ -1,4 +1,4 @@
-import { atom, DefaultValue, selector } from 'recoil'
+import { atom, AtomEffect, DefaultValue, selector } from 'recoil'
 import _ from 'lodash'
 import { HDStrategy, LDMSampler } from '../components/Settings/HDSettingBlock'
 import { ToastState } from '../components/shared/Toast'
@@ -318,7 +318,7 @@ export const settingStateDefault: Settings = {
 
 const localStorageEffect =
   (key: string) =>
-  ({ setSelf, onSet }: any) => {
+  ({ setSelf, onSet }: AtomEffect<Settings>) => {
     const savedValue = localStorage.getItem(key)
     if (savedValue != null) {
       const storageSettings = JSON.parse(savedValue)
@@ -331,8 +331,17 @@ const localStorageEffect =
         storageSettings.showCropper = storageSettings.showCroper
       }
       if (storageSettings.hdSettings) {
+        type LegacyModelSettings = {
+          hdStrategyCropTrigerSize?: number
+          hdStrategyCropTriggerSize?: number
+          [key: string]: unknown
+        }
+        const hdSettings = storageSettings.hdSettings as Record<
+          string,
+          LegacyModelSettings
+        >
         storageSettings.hdSettings = Object.fromEntries(
-          Object.entries(storageSettings.hdSettings).map(([modelName, modelSettings]: any) => {
+          Object.entries(hdSettings).map(([modelName, modelSettings]) => {
             if (
               modelSettings?.hdStrategyCropTrigerSize !== undefined &&
               modelSettings.hdStrategyCropTriggerSize === undefined
