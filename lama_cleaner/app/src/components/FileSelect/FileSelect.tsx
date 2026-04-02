@@ -74,7 +74,7 @@ export default function FileSelect(props: FileSelectProps) {
   async function getAllFileEntries(items: DataTransferItemList) {
     const fileEntries: Array<File> = []
     // Use BFS to traverse entire directory/file structure
-    const queue: FileSystemEntryLike[] = []
+    const queue: (FileSystemEntryLike | null)[] = []
 
     const getAsEntry = (item: DataTransferItem): FileSystemEntryLike | null => {
       const webkitItem = item as DataTransferItem & {
