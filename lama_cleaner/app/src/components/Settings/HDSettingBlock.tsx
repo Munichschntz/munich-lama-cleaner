@@ -23,22 +23,22 @@ function HDSettingBlock() {
   }
 
   const onStrategyChange = (value: HDStrategy) => {
-    setHDSettings({ hdStrategy: value })
+    setHDSettings((prev) => ({ ...prev, hdStrategy: value }))
   }
 
   const onResizeLimitChange = (value: string) => {
     const val = value.length === 0 ? 0 : parseInt(value, 10)
-    setHDSettings({ hdStrategyResizeLimit: val })
+    setHDSettings((prev) => ({ ...prev, hdStrategyResizeLimit: val }))
   }
 
   const onCropTriggerSizeChange = (value: string) => {
     const val = value.length === 0 ? 0 : parseInt(value, 10)
-    setHDSettings({ hdStrategyCropTriggerSize: val })
+    setHDSettings((prev) => ({ ...prev, hdStrategyCropTriggerSize: val }))
   }
 
   const onCropMarginChange = (value: string) => {
     const val = value.length === 0 ? 0 : parseInt(value, 10)
-    setHDSettings({ hdStrategyCropMargin: val })
+    setHDSettings((prev) => ({ ...prev, hdStrategyCropMargin: val }))
   }
 
   const renderOriginalOptionDesc = () => {
