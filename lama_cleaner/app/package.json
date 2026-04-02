@@ -48,6 +48,8 @@
     "lint": "eslint --ext .ts,.tsx src",
     "lint:strict": "eslint --ext .ts,.tsx src --max-warnings=0",
     "lint:fix": "eslint --ext .ts,.tsx src --fix",
+    "check": "yarn preflight && yarn typecheck && yarn lint && yarn build",
+    "check:win": "yarn preflight:win && yarn typecheck && yarn lint && yarn build:win:clean",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

@@ -18,12 +18,15 @@ interface WorkspaceProps {
   file: File
 }
 
+const isAIModel = (value: unknown): value is AIModel =>
+  Object.values(AIModel).includes(value as AIModel)
+
 const Workspace = ({ file }: WorkspaceProps) => {
   const [settings, setSettingState] = useRecoilState(settingState)
   const [toastVal, setToastState] = useRecoilState(toastState)
   const isSD = useRecoilValue(isSDState)
 
-  const parseResponseError = async (res: Response) => {
+  const parseResponseError = async (res: Response): Promise<string> => {
     try {
       const data = await res.json()
       return data?.error?.message || 'Server error'
@@ -40,7 +43,9 @@ const Workspace = ({ file }: WorkspaceProps) => {
         throw new Error(await parseResponseError(curModelRes))
       }
       const curModelJson = await curModelRes.json()
-      curModel = curModelJson.model as AIModel
+      if (isAIModel(curModelJson.model)) {
+        curModel = curModelJson.model
+      }
       if (curModel === settings.model) {
         return
       }
@@ -120,9 +125,9 @@ const Workspace = ({ file }: WorkspaceProps) => {
         return res.json()
       })
       .then(({ model }) => {
-        if (model && Object.values(AIModel).includes(model as AIModel)) {
+        if (isAIModel(model)) {
           setSettingState(old => {
-            return { ...old, model: model as AIModel }
+            return { ...old, model }
           })
         }
       })

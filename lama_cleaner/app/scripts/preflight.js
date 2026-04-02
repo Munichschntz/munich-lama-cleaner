@@ -24,7 +24,8 @@ function readApiEndpoint() {
     if (!line) {
       return ''
     }
-    return line.split('=')[1] || ''
+    const value = line.substring('REACT_APP_INPAINTING_URL='.length)
+    return value.replace(/^["']|["']$/g, '').trim()
   }
 
   return readFrom(envLocal) || readFrom(envFile)

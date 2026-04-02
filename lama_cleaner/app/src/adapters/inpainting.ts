@@ -1,7 +1,7 @@
 import { Rect, Settings } from '../store/Atoms'
 import { dataURItoBlob } from '../utils'
 
-const API_ENDPOINT_FROM_ENV = process.env.REACT_APP_INPAINTING_URL
+const API_ENDPOINT_FROM_ENV = process.env.REACT_APP_INPAINTING_URL?.trim()
 
 export const API_ENDPOINT = API_ENDPOINT_FROM_ENV || 'http://localhost:8080'
 export const IS_API_ENDPOINT_FALLBACK = !API_ENDPOINT_FROM_ENV
@@ -39,7 +39,7 @@ export default async function inpaint(
   prompt?: string,
   sizeLimit?: string,
   seed?: number
-) {
+): Promise<{ blob: string; seed: string | null }> {
   // 1080, 2000, Original
   const fd = new FormData()
   fd.append('image', imageFile)
@@ -111,7 +111,7 @@ export default async function inpaint(
   }
 }
 
-export function switchModel(name: string) {
+export function switchModel(name: string): Promise<Response> {
   const fd = new FormData()
   fd.append('name', name)
   return fetch(`${API_ENDPOINT}/model`, {
@@ -120,13 +120,13 @@ export function switchModel(name: string) {
   })
 }
 
-export function currentModel() {
+export function currentModel(): Promise<Response> {
   return fetch(`${API_ENDPOINT}/model`, {
     method: 'GET',
   })
 }
 
-export function modelDownloaded(name: string) {
+export function modelDownloaded(name: string): Promise<Response> {
   return fetch(`${API_ENDPOINT}/model_downloaded/${name}`, {
     method: 'GET',
   })
