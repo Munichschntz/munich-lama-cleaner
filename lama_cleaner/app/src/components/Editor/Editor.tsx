@@ -15,7 +15,7 @@ import {
   TransformComponent,
   TransformWrapper,
 } from 'react-zoom-pan-pinch'
-import { useRecoilState, useRecoilValue } from 'recoil'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import { useWindowSize, useKey, useKeyPressEvent } from 'react-use'
 import inpaint from '../../adapters/inpainting'
 import Button from '../shared/Button'
@@ -133,7 +133,7 @@ export default function Editor(props: EditorProps) {
   const [settings, setSettings] = useRecoilState(settingState)
   const [seedVal, setSeed] = useRecoilState(seedState)
   const [cropperRect, setCropperRect] = useRecoilState(cropperState)
-  const [, setToastState] = useRecoilState(toastState)
+  const setToastState = useSetRecoilState(toastState)
   const [isInpainting, setIsInpainting] = useRecoilState(isInpaintingState)
   const runManually = useRecoilValue(runManuallyState)
   const isSD = useRecoilValue(isSDState)

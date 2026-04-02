@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react'
-import { useRecoilState } from 'recoil'
+import { useRecoilState, useSetRecoilState } from 'recoil'
 import { nanoid } from 'nanoid'
 import useInputImage from './hooks/useInputImage'
 import LandingPage from './components/LandingPage/LandingPage'
@@ -24,7 +24,7 @@ keepGUIAlive()
 function App() {
   const [file, setFile] = useRecoilState(fileState)
   const [theme, setTheme] = useRecoilState(themeState)
-  const [, setToastState] = useRecoilState(toastState)
+  const setToastState = useSetRecoilState(toastState)
   const userInputImage = useInputImage()
 
   // Set Input Image

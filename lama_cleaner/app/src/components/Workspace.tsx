@@ -14,12 +14,14 @@ import {
 } from '../adapters/inpainting'
 import SidePanel from './SidePanel/SidePanel'
 
+const AI_MODELS = new Set(Object.values(AIModel))
+
 interface WorkspaceProps {
   file: File
 }
 
 const isAIModel = (value: unknown): value is AIModel =>
-  Object.values(AIModel).includes(value as AIModel)
+  AI_MODELS.has(value as AIModel)
 
 const Workspace = ({ file }: WorkspaceProps) => {
   const [settings, setSettingState] = useRecoilState(settingState)
@@ -146,7 +148,7 @@ const Workspace = ({ file }: WorkspaceProps) => {
 
   return (
     <>
-      {isSD ? <SidePanel /> : <></>}
+      {isSD ? <SidePanel /> : null}
       <Editor file={file} />
       <SettingModal onClose={onSettingClose} />
       <ShortcutsModal />
