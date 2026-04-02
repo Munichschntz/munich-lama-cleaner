@@ -7,6 +7,8 @@ import Toast from './shared/Toast'
 import { AIModel, isSDState, settingState, toastState } from '../store/Atoms'
 import {
   currentModel,
+  IS_API_ENDPOINT_FALLBACK,
+  API_ENDPOINT,
   modelDownloaded,
   switchModel,
 } from '../adapters/inpainting'
@@ -96,6 +98,18 @@ const Workspace = ({ file }: WorkspaceProps) => {
       })
     }
   }
+
+  useEffect(() => {
+    if (!IS_API_ENDPOINT_FALLBACK) {
+      return
+    }
+    setToastState({
+      open: true,
+      desc: `Using fallback API endpoint: ${API_ENDPOINT}`,
+      state: 'default',
+      duration: 3500,
+    })
+  }, [setToastState])
 
   useEffect(() => {
     currentModel()
